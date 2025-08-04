@@ -1,13 +1,48 @@
-// Update this page (the content is just a fallback if you fail to update the page)
+import React, { useState } from 'react';
+import { useAuth } from '@/components/auth/AuthProvider';
+import { AuthPage } from '@/components/auth/AuthPage';
+import { Layout } from '@/components/layout/Layout';
+import { Dashboard } from '@/components/dashboard/Dashboard';
+import { TransactionsList } from '@/components/transactions/TransactionsList';
+import { CustomersList } from '@/components/customers/CustomersList';
+import { Reports } from '@/components/reports/Reports';
+import { Loader2 } from 'lucide-react';
 
 const Index = () => {
-  return (
-    <div className="min-h-screen flex items-center justify-center bg-background">
-      <div className="text-center">
-        <h1 className="text-4xl font-bold mb-4">Welcome to Your Blank App</h1>
-        <p className="text-xl text-muted-foreground">Start building your amazing project here!</p>
+  const { user, loading } = useAuth();
+  const [currentView, setCurrentView] = useState<'dashboard' | 'transactions' | 'customers' | 'reports'>('dashboard');
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin" />
       </div>
-    </div>
+    );
+  }
+
+  if (!user) {
+    return <AuthPage />;
+  }
+
+  const renderContent = () => {
+    switch (currentView) {
+      case 'dashboard':
+        return <Dashboard />;
+      case 'transactions':
+        return <TransactionsList />;
+      case 'customers':
+        return <CustomersList />;
+      case 'reports':
+        return <Reports />;
+      default:
+        return <Dashboard />;
+    }
+  };
+
+  return (
+    <Layout currentView={currentView} onViewChange={setCurrentView}>
+      {renderContent()}
+    </Layout>
   );
 };
 
