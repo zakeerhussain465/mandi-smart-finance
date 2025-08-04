@@ -58,7 +58,7 @@ export const TransactionForm: React.FC = () => {
 
     // For cash sales, create a temporary customer if none selected
     let customerIdToUse = customerId;
-    if (!customerId) {
+    if (!customerId || customerId === 'cash-sale') {
       const cashCustomer = await createCustomer({
         name: 'Cash Sale',
         phone: undefined,
@@ -113,7 +113,7 @@ export const TransactionForm: React.FC = () => {
                   <SelectValue placeholder="Select customer or leave empty for cash sale" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">Cash Sale (No Customer)</SelectItem>
+                  <SelectItem value="cash-sale">Cash Sale (No Customer)</SelectItem>
                   {customers.map((customer) => (
                     <SelectItem key={customer.id} value={customer.id}>
                       {customer.name} {customer.phone && `(${customer.phone})`}
