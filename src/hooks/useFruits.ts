@@ -7,6 +7,16 @@ export interface Fruit {
   name: string;
   price_per_kg: number;
   available_stock: number;
+  unit?: string;
+  price_per_unit?: number;
+}
+
+export interface CreateFruitData {
+  name: string;
+  price_per_kg: number;
+  available_stock: number;
+  unit?: string;
+  price_per_unit?: number;
 }
 
 export const useFruits = () => {
@@ -33,6 +43,57 @@ export const useFruits = () => {
     }
   };
 
+  const createFruit = async (fruitData: CreateFruitData) => {
+    try {
+      const { data, error } = await supabase
+        .from('fruits')
+        .insert([fruitData])
+        .select()
+        .single();
+
+      if (error) throw error;
+      setFruits(prev => [...prev, data]);
+      toast({
+        title: "Success",
+        description: "Fruit created successfully"
+      });
+      return data;
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to create fruit",
+        variant: "destructive"
+      });
+      return null;
+    }
+  };
+
+  const updateFruit = async (id: string, updates: Partial<Fruit>) => {
+    try {
+      const { data, error } = await supabase
+        .from('fruits')
+        .update(updates)
+        .eq('id', id)
+        .select()
+        .single();
+
+      if (error) throw error;
+      setFruits(prev => prev.map(f => f.id === id ? data : f));
+      toast({
+        title: "Success",
+        description: "Fruit updated successfully"
+      });
+      return data;
+    } catch (error: any) {
+      toast({
+        title: "Error", 
+        description: error.message || "Failed to update fruit",
+        variant: "destructive"
+      });
+      return null;
+    }
+  };
+
   useEffect(() => {
     fetchFruits();
   }, []);
@@ -40,6 +101,8 @@ export const useFruits = () => {
   return {
     fruits,
     loading,
+    createFruit,
+    updateFruit,
     refetch: fetchFruits
   };
 };

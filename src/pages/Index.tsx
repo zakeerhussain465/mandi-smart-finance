@@ -5,12 +5,14 @@ import { Layout } from '@/components/layout/Layout';
 import { Dashboard } from '@/components/dashboard/Dashboard';
 import { TransactionsList } from '@/components/transactions/TransactionsList';
 import { CustomersList } from '@/components/customers/CustomersList';
+import { FruitManagement } from '@/components/fruits/FruitManagement';
+import { TrayManagement } from '@/components/trays/TrayManagement';
 import { Reports } from '@/components/reports/Reports';
 import { Loader2 } from 'lucide-react';
 
 const Index = () => {
   const { user, loading } = useAuth();
-  const [currentView, setCurrentView] = useState<'dashboard' | 'transactions' | 'customers' | 'reports'>('dashboard');
+  const [currentView, setCurrentView] = useState<'dashboard' | 'transactions' | 'customers' | 'fruits' | 'trays' | 'reports'>('dashboard');
 
   if (loading) {
     return (
@@ -32,6 +34,10 @@ const Index = () => {
         return <TransactionsList />;
       case 'customers':
         return <CustomersList />;
+      case 'fruits':
+        return <FruitManagement />;
+      case 'trays':
+        return <TrayManagement />;
       case 'reports':
         return <Reports />;
       default:

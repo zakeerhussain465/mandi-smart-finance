@@ -54,6 +54,8 @@ export type Database = {
           id: string
           name: string
           price_per_kg: number
+          price_per_unit: number | null
+          unit: string | null
           updated_at: string | null
         }
         Insert: {
@@ -62,6 +64,8 @@ export type Database = {
           id?: string
           name: string
           price_per_kg: number
+          price_per_unit?: number | null
+          unit?: string | null
           updated_at?: string | null
         }
         Update: {
@@ -70,6 +74,8 @@ export type Database = {
           id?: string
           name?: string
           price_per_kg?: number
+          price_per_unit?: number | null
+          unit?: string | null
           updated_at?: string | null
         }
         Relationships: []

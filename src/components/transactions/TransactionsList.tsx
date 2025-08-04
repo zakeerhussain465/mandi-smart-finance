@@ -1,13 +1,16 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { useTransactions } from '@/hooks/useTransactions';
 import { TransactionForm } from './TransactionForm';
-import { Loader2, Receipt } from 'lucide-react';
+import { PaymentUpdateDialog } from './PaymentUpdateDialog';
+import { Loader2, Receipt, CreditCard } from 'lucide-react';
 
 export const TransactionsList: React.FC = () => {
   const { transactions, loading } = useTransactions();
+  const [selectedTransaction, setSelectedTransaction] = useState<any>(null);
+  const [paymentDialogOpen, setPaymentDialogOpen] = useState(false);
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -85,13 +88,28 @@ export const TransactionsList: React.FC = () => {
                   </div>
                   <div>
                     <p className="text-sm font-medium text-muted-foreground">Balance</p>
-                    <p className={`font-semibold ${
-                      transaction.total_amount - transaction.paid_amount > 0 
-                        ? 'text-destructive' 
-                        : 'text-green-600'
-                    }`}>
-                      ₹{(transaction.total_amount - transaction.paid_amount).toFixed(2)}
-                    </p>
+                    <div className="flex items-center space-x-2">
+                      <p className={`font-semibold ${
+                        transaction.total_amount - transaction.paid_amount > 0 
+                          ? 'text-destructive' 
+                          : 'text-green-600'
+                      }`}>
+                        ₹{(transaction.total_amount - transaction.paid_amount).toFixed(2)}
+                      </p>
+                      {transaction.total_amount - transaction.paid_amount > 0 && (
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => {
+                            setSelectedTransaction(transaction);
+                            setPaymentDialogOpen(true);
+                          }}
+                        >
+                          <CreditCard className="h-4 w-4 mr-1" />
+                          Pay
+                        </Button>
+                      )}
+                    </div>
                   </div>
                 </div>
                 {transaction.notes && (
@@ -105,6 +123,17 @@ export const TransactionsList: React.FC = () => {
           ))
         )}
       </div>
+
+      {selectedTransaction && (
+        <PaymentUpdateDialog
+          transaction={selectedTransaction}
+          open={paymentDialogOpen}
+          onOpenChange={(open) => {
+            setPaymentDialogOpen(open);
+            if (!open) setSelectedTransaction(null);
+          }}
+        />
+      )}
     </div>
   );
 };

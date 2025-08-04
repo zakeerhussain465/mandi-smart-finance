@@ -1,13 +1,13 @@
 import React from 'react';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/components/auth/AuthProvider';
-import { LogOut, Home, Users, ShoppingCart, BarChart3 } from 'lucide-react';
+import { LogOut, Home, Users, ShoppingCart, BarChart3, Apple, Package } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 interface LayoutProps {
   children: React.ReactNode;
-  currentView: 'dashboard' | 'transactions' | 'customers' | 'reports';
-  onViewChange: (view: 'dashboard' | 'transactions' | 'customers' | 'reports') => void;
+  currentView: 'dashboard' | 'transactions' | 'customers' | 'fruits' | 'trays' | 'reports';
+  onViewChange: (view: 'dashboard' | 'transactions' | 'customers' | 'fruits' | 'trays' | 'reports') => void;
 }
 
 export const Layout: React.FC<LayoutProps> = ({ children, currentView, onViewChange }) => {
@@ -17,6 +17,8 @@ export const Layout: React.FC<LayoutProps> = ({ children, currentView, onViewCha
     { key: 'dashboard', label: 'Dashboard', icon: Home },
     { key: 'transactions', label: 'Transactions', icon: ShoppingCart },
     { key: 'customers', label: 'Customers', icon: Users },
+    { key: 'fruits', label: 'Fruits', icon: Apple },
+    { key: 'trays', label: 'Trays', icon: Package },
     { key: 'reports', label: 'Reports', icon: BarChart3 },
   ] as const;
 

@@ -52,12 +52,27 @@ export const TransactionForm: React.FC = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!customerId || !fruitId || !quantity || !pricePerKg) {
+    if (!fruitId || !quantity || !pricePerKg) {
       return;
     }
 
+    // For cash sales, create a temporary customer if none selected
+    let customerIdToUse = customerId;
+    if (!customerId) {
+      const cashCustomer = await createCustomer({
+        name: 'Cash Sale',
+        phone: undefined,
+        address: undefined,
+      });
+      if (cashCustomer) {
+        customerIdToUse = cashCustomer.id;
+      }
+    }
+
+    if (!customerIdToUse) return;
+
     const transaction = await createTransaction({
-      customer_id: customerId,
+      customer_id: customerIdToUse,
       fruit_id: fruitId,
       quantity: parseFloat(quantity),
       price_per_kg: parseFloat(pricePerKg),
@@ -91,13 +106,14 @@ export const TransactionForm: React.FC = () => {
         <form onSubmit={handleSubmit} className="space-y-6">
           {/* Customer Selection */}
           <div className="space-y-4">
-            <Label>Customer</Label>
+            <Label>Customer (Optional)</Label>
             <div className="flex space-x-2">
               <Select value={customerId} onValueChange={setCustomerId}>
                 <SelectTrigger className="flex-1">
-                  <SelectValue placeholder="Select customer" />
+                  <SelectValue placeholder="Select customer or leave empty for cash sale" />
                 </SelectTrigger>
                 <SelectContent>
+                  <SelectItem value="">Cash Sale (No Customer)</SelectItem>
                   {customers.map((customer) => (
                     <SelectItem key={customer.id} value={customer.id}>
                       {customer.name} {customer.phone && `(${customer.phone})`}
