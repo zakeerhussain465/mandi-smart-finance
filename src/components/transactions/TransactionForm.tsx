@@ -18,6 +18,7 @@ export const TransactionForm: React.FC = () => {
   const [quantity, setQuantity] = useState('');
   const [pricePerKg, setPricePerKg] = useState('');
   const [paidAmount, setPaidAmount] = useState('');
+  const [numberOfTrays, setNumberOfTrays] = useState('');
   const [notes, setNotes] = useState('');
   const [showNewCustomer, setShowNewCustomer] = useState(false);
   const [newCustomerName, setNewCustomerName] = useState('');
@@ -30,6 +31,7 @@ export const TransactionForm: React.FC = () => {
 
   const totalAmount = parseFloat(quantity || '0') * parseFloat(pricePerKg || '0');
   const remainingAmount = totalAmount - parseFloat(paidAmount || '0');
+  const traysUsed = parseInt(numberOfTrays || '0');
 
   const handleCreateCustomer = async () => {
     if (!newCustomerName.trim()) return;
@@ -87,6 +89,7 @@ export const TransactionForm: React.FC = () => {
       setQuantity('');
       setPricePerKg('');
       setPaidAmount('');
+      setNumberOfTrays('');
       setNotes('');
     }
   };
@@ -204,7 +207,7 @@ export const TransactionForm: React.FC = () => {
           </div>
 
           {/* Transaction Details */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div className="space-y-2">
               <Label htmlFor="quantity">Quantity (kg)</Label>
               <Input
@@ -229,6 +232,17 @@ export const TransactionForm: React.FC = () => {
                 required
               />
             </div>
+            <div className="space-y-2">
+              <Label htmlFor="numberOfTrays">Number of Trays</Label>
+              <Input
+                id="numberOfTrays"
+                type="number"
+                min="0"
+                value={numberOfTrays}
+                onChange={(e) => setNumberOfTrays(e.target.value)}
+                placeholder="0"
+              />
+            </div>
           </div>
 
           {/* Amount Details */}
@@ -237,6 +251,12 @@ export const TransactionForm: React.FC = () => {
               <span>Total Amount:</span>
               <span className="font-semibold">₹{totalAmount.toFixed(2)}</span>
             </div>
+            {traysUsed > 0 && (
+              <div className="flex justify-between">
+                <span>Trays Used:</span>
+                <span className="font-medium">{traysUsed} tray{traysUsed !== 1 ? 's' : ''}</span>
+              </div>
+            )}
             <div className="space-y-2">
               <Label htmlFor="paidAmount">Paid Amount (₹)</Label>
               <Input
