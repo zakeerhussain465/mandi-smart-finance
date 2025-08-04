@@ -9,6 +9,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { useCustomers } from '@/hooks/useCustomers';
 import { useFruits } from '@/hooks/useFruits';
 import { useTransactions } from '@/hooks/useTransactions';
+import { useTrayTransactions } from '@/hooks/useTrayTransactions';
 import { Plus, UserPlus } from 'lucide-react';
 
 export const TransactionForm: React.FC = () => {
@@ -28,6 +29,7 @@ export const TransactionForm: React.FC = () => {
   const { customers, createCustomer } = useCustomers();
   const { fruits } = useFruits();
   const { createTransaction } = useTransactions();
+  const { createTrayTransaction } = useTrayTransactions();
 
   const totalAmount = parseFloat(quantity || '0') * parseFloat(pricePerKg || '0');
   const remainingAmount = totalAmount - parseFloat(paidAmount || '0');
@@ -81,6 +83,21 @@ export const TransactionForm: React.FC = () => {
       paid_amount: parseFloat(paidAmount || '0'),
       notes: notes || undefined,
     });
+
+    if (transaction && traysUsed > 0 && customerId !== 'cash-sale') {
+      // Create tray transaction if trays are used and it's not a cash sale
+      const selectedFruit = fruits.find(f => f.id === fruitId);
+      const trayNotes = `Transaction ID: ${transaction.id} - ${selectedFruit?.name || 'Unknown'} (${quantity}kg)`;
+      
+      await createTrayTransaction({
+        customer_id: customerIdToUse,
+        tray_number: `TXN-${Date.now()}`, // Auto-generate tray number
+        weight: parseFloat(quantity),
+        rate_per_kg: parseFloat(pricePerKg),
+        paid_amount: parseFloat(paidAmount || '0'),
+        notes: trayNotes
+      });
+    }
 
     if (transaction) {
       setOpen(false);

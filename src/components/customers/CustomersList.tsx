@@ -7,7 +7,8 @@ import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { useCustomers } from '@/hooks/useCustomers';
 import { useTransactions } from '@/hooks/useTransactions';
-import { Plus, Users, Phone, MapPin, Loader2, ArrowLeft, Receipt, Eye } from 'lucide-react';
+import { Plus, Users, Phone, MapPin, Loader2, ArrowLeft, Receipt, Eye, Trash2 } from 'lucide-react';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 
 export const CustomersList: React.FC = () => {
   const [open, setOpen] = useState(false);
@@ -16,7 +17,7 @@ export const CustomersList: React.FC = () => {
   const [phone, setPhone] = useState('');
   const [address, setAddress] = useState('');
   
-  const { customers, loading, createCustomer } = useCustomers();
+  const { customers, loading, createCustomer, deleteCustomer } = useCustomers();
   const { transactions } = useTransactions();
 
   // Calculate transaction counts for each customer
@@ -48,6 +49,13 @@ export const CustomersList: React.FC = () => {
   const customerTransactions = selectedCustomer 
     ? transactions.filter(t => t.customer_id === selectedCustomer.id)
     : [];
+
+  const handleDeleteCustomer = async (customerId: string) => {
+    const success = await deleteCustomer(customerId);
+    if (success && selectedCustomer?.id === customerId) {
+      setSelectedCustomer(null);
+    }
+  };
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -301,17 +309,48 @@ export const CustomersList: React.FC = () => {
                         {customerTransactionCounts[customer.id] || 0} transactions
                       </div>
                     </div>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setSelectedCustomer(customer);
-                      }}
-                    >
-                      <Eye className="h-4 w-4 mr-1" />
-                      View
-                    </Button>
+                    <div className="flex space-x-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setSelectedCustomer(customer);
+                        }}
+                      >
+                        <Eye className="h-4 w-4 mr-1" />
+                        View
+                      </Button>
+                      <AlertDialog>
+                        <AlertDialogTrigger asChild>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={(e) => e.stopPropagation()}
+                            className="text-destructive hover:text-destructive"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </AlertDialogTrigger>
+                        <AlertDialogContent>
+                          <AlertDialogHeader>
+                            <AlertDialogTitle>Delete Customer</AlertDialogTitle>
+                            <AlertDialogDescription>
+                              Are you sure you want to delete "{customer.name}"? This action cannot be undone and will remove all associated transaction history.
+                            </AlertDialogDescription>
+                          </AlertDialogHeader>
+                          <AlertDialogFooter>
+                            <AlertDialogCancel>Cancel</AlertDialogCancel>
+                            <AlertDialogAction
+                              onClick={() => handleDeleteCustomer(customer.id)}
+                              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                            >
+                              Delete
+                            </AlertDialogAction>
+                          </AlertDialogFooter>
+                        </AlertDialogContent>
+                      </AlertDialog>
+                    </div>
                   </div>
                 </div>
               </CardHeader>

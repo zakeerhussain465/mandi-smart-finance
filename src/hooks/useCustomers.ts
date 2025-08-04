@@ -100,6 +100,32 @@ export const useCustomers = () => {
     }
   };
 
+  const deleteCustomer = async (id: string) => {
+    try {
+      const { error } = await supabase
+        .from('customers')
+        .delete()
+        .eq('id', id);
+
+      if (error) throw error;
+      
+      setCustomers(prev => prev.filter(c => c.id !== id));
+      toast({
+        title: "Success",
+        description: "Customer deleted successfully"
+      });
+      
+      return true;
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to delete customer",
+        variant: "destructive"
+      });
+      return false;
+    }
+  };
+
   useEffect(() => {
     fetchCustomers();
   }, [user]);
@@ -109,6 +135,7 @@ export const useCustomers = () => {
     loading,
     createCustomer,
     updateCustomer,
+    deleteCustomer,
     refetch: fetchCustomers
   };
 };
