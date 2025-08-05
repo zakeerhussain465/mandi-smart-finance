@@ -94,6 +94,30 @@ export const useFruits = () => {
     }
   };
 
+  const deleteFruit = async (id: string) => {
+    try {
+      const { error } = await supabase
+        .from('fruits')
+        .delete()
+        .eq('id', id);
+
+      if (error) throw error;
+      setFruits(prev => prev.filter(f => f.id !== id));
+      toast({
+        title: "Success",
+        description: "Fruit deleted successfully"
+      });
+      return true;
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to delete fruit",
+        variant: "destructive"
+      });
+      return false;
+    }
+  };
+
   useEffect(() => {
     fetchFruits();
   }, []);
@@ -103,6 +127,7 @@ export const useFruits = () => {
     loading,
     createFruit,
     updateFruit,
+    deleteFruit,
     refetch: fetchFruits
   };
 };

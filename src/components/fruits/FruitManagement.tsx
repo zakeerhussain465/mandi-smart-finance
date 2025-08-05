@@ -7,7 +7,8 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { useFruits } from '@/hooks/useFruits';
-import { Plus, Edit2, Loader2 } from 'lucide-react';
+import { Plus, Edit2, Loader2, Trash2 } from 'lucide-react';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 
 export const FruitManagement: React.FC = () => {
   const [open, setOpen] = useState(false);
@@ -18,7 +19,7 @@ export const FruitManagement: React.FC = () => {
   const [unit, setUnit] = useState('kg');
   const [availableStock, setAvailableStock] = useState('');
 
-  const { fruits, loading, createFruit, updateFruit } = useFruits();
+  const { fruits, loading, createFruit, updateFruit, deleteFruit } = useFruits();
 
   const resetForm = () => {
     setName('');
@@ -63,6 +64,10 @@ export const FruitManagement: React.FC = () => {
     setUnit(fruit.unit || 'kg');
     setAvailableStock(fruit.available_stock.toString());
     setOpen(true);
+  };
+
+  const handleDelete = async (id: string) => {
+    await deleteFruit(id);
   };
 
   if (loading) {
@@ -204,13 +209,39 @@ export const FruitManagement: React.FC = () => {
                   </TableCell>
                   <TableCell>{fruit.available_stock}</TableCell>
                   <TableCell>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => handleEdit(fruit)}
-                    >
-                      <Edit2 className="h-4 w-4" />
-                    </Button>
+                    <div className="flex space-x-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handleEdit(fruit)}
+                      >
+                        <Edit2 className="h-4 w-4" />
+                      </Button>
+                      <AlertDialog>
+                        <AlertDialogTrigger asChild>
+                          <Button variant="outline" size="sm">
+                            <Trash2 className="h-4 w-4 text-destructive" />
+                          </Button>
+                        </AlertDialogTrigger>
+                        <AlertDialogContent>
+                          <AlertDialogHeader>
+                            <AlertDialogTitle>Delete Fruit</AlertDialogTitle>
+                            <AlertDialogDescription>
+                              Are you sure you want to delete "{fruit.name}"? This action cannot be undone.
+                            </AlertDialogDescription>
+                          </AlertDialogHeader>
+                          <AlertDialogFooter>
+                            <AlertDialogCancel>Cancel</AlertDialogCancel>
+                            <AlertDialogAction 
+                              onClick={() => handleDelete(fruit.id)}
+                              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                            >
+                              Delete
+                            </AlertDialogAction>
+                          </AlertDialogFooter>
+                        </AlertDialogContent>
+                      </AlertDialog>
+                    </div>
                   </TableCell>
                 </TableRow>
               ))}

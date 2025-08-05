@@ -21,6 +21,7 @@ export const TransactionForm: React.FC = () => {
   const [paidAmount, setPaidAmount] = useState('');
   const [numberOfTrays, setNumberOfTrays] = useState('');
   const [notes, setNotes] = useState('');
+  const [pricingMode, setPricingMode] = useState<'kg' | 'unit'>('kg');
   const [showNewCustomer, setShowNewCustomer] = useState(false);
   const [newCustomerName, setNewCustomerName] = useState('');
   const [newCustomerPhone, setNewCustomerPhone] = useState('');
@@ -108,6 +109,7 @@ export const TransactionForm: React.FC = () => {
       setPaidAmount('');
       setNumberOfTrays('');
       setNotes('');
+      setPricingMode('kg');
     }
   };
 
@@ -208,6 +210,7 @@ export const TransactionForm: React.FC = () => {
               const fruit = fruits.find(f => f.id === value);
               if (fruit) {
                 setPricePerKg(fruit.price_per_kg.toString());
+                setPricingMode('kg'); // Reset to kg when selecting new fruit
               }
             }}>
               <SelectTrigger>
@@ -217,11 +220,41 @@ export const TransactionForm: React.FC = () => {
                 {fruits.map((fruit) => (
                   <SelectItem key={fruit.id} value={fruit.id}>
                     {fruit.name} - ₹{fruit.price_per_kg}/kg
+                    {fruit.price_per_unit && fruit.unit !== 'kg' && ` | ₹${fruit.price_per_unit}/${fruit.unit}`}
                   </SelectItem>
                 ))}
               </SelectContent>
             </Select>
           </div>
+
+          {/* Pricing Mode Selection */}
+          {fruitId && (() => {
+            const selectedFruit = fruits.find(f => f.id === fruitId);
+            return selectedFruit?.price_per_unit && selectedFruit?.unit !== 'kg' ? (
+              <div className="space-y-2">
+                <Label>Pricing Mode</Label>
+                <Select value={pricingMode} onValueChange={(value: 'kg' | 'unit') => {
+                  setPricingMode(value);
+                  const fruit = fruits.find(f => f.id === fruitId);
+                  if (fruit) {
+                    if (value === 'kg') {
+                      setPricePerKg(fruit.price_per_kg.toString());
+                    } else {
+                      setPricePerKg(fruit.price_per_unit?.toString() || fruit.price_per_kg.toString());
+                    }
+                  }
+                }}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="kg">Price per kg (₹{selectedFruit.price_per_kg})</SelectItem>
+                    <SelectItem value="unit">Price per {selectedFruit.unit} (₹{selectedFruit.price_per_unit})</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            ) : null;
+          })()}
 
           {/* Transaction Details */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -238,7 +271,12 @@ export const TransactionForm: React.FC = () => {
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="pricePerKg">Price per kg (₹)</Label>
+              <Label htmlFor="pricePerKg">
+                Price per {pricingMode === 'kg' ? 'kg' : (() => {
+                  const selectedFruit = fruits.find(f => f.id === fruitId);
+                  return selectedFruit?.unit || 'unit';
+                })()} (₹)
+              </Label>
               <Input
                 id="pricePerKg"
                 type="number"
