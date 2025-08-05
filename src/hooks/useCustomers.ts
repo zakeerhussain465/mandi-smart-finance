@@ -42,6 +42,16 @@ export const useCustomers = () => {
   const createCustomer = async (customerData: Omit<Customer, 'id' | 'balance' | 'created_at'>) => {
     if (!user) return null;
 
+    // Optimistic update - create temporary customer
+    const tempCustomer: Customer = {
+      id: `temp-${Date.now()}`,
+      ...customerData,
+      balance: 0,
+      created_at: new Date().toISOString()
+    };
+    
+    setCustomers(prev => [...prev, tempCustomer]);
+
     try {
       const { data, error } = await supabase
         .from('customers')
@@ -55,7 +65,8 @@ export const useCustomers = () => {
 
       if (error) throw error;
       
-      setCustomers(prev => [...prev, data]);
+      // Replace temp customer with real data
+      setCustomers(prev => prev.map(c => c.id === tempCustomer.id ? data : c));
       toast({
         title: "Success",
         description: "Customer created successfully"
@@ -63,6 +74,8 @@ export const useCustomers = () => {
       
       return data;
     } catch (error: any) {
+      // Remove temp customer on error
+      setCustomers(prev => prev.filter(c => c.id !== tempCustomer.id));
       toast({
         title: "Error",
         description: error.message || "Failed to create customer",
@@ -73,6 +86,12 @@ export const useCustomers = () => {
   };
 
   const updateCustomer = async (id: string, updates: Partial<Customer>) => {
+    // Optimistic update
+    const originalCustomer = customers.find(c => c.id === id);
+    if (originalCustomer) {
+      setCustomers(prev => prev.map(c => c.id === id ? { ...c, ...updates } : c));
+    }
+
     try {
       const { data, error } = await supabase
         .from('customers')
@@ -83,6 +102,7 @@ export const useCustomers = () => {
 
       if (error) throw error;
       
+      // Update with server data
       setCustomers(prev => prev.map(c => c.id === id ? data : c));
       toast({
         title: "Success",
@@ -91,6 +111,10 @@ export const useCustomers = () => {
       
       return data;
     } catch (error: any) {
+      // Revert optimistic update on error
+      if (originalCustomer) {
+        setCustomers(prev => prev.map(c => c.id === id ? originalCustomer : c));
+      }
       toast({
         title: "Error",
         description: error.message || "Failed to update customer",
@@ -101,6 +125,10 @@ export const useCustomers = () => {
   };
 
   const deleteCustomer = async (id: string) => {
+    // Optimistic update - remove immediately
+    const originalCustomer = customers.find(c => c.id === id);
+    setCustomers(prev => prev.filter(c => c.id !== id));
+
     try {
       const { error } = await supabase
         .from('customers')
@@ -109,7 +137,6 @@ export const useCustomers = () => {
 
       if (error) throw error;
       
-      setCustomers(prev => prev.filter(c => c.id !== id));
       toast({
         title: "Success",
         description: "Customer deleted successfully"
@@ -117,6 +144,10 @@ export const useCustomers = () => {
       
       return true;
     } catch (error: any) {
+      // Restore customer on error
+      if (originalCustomer) {
+        setCustomers(prev => [...prev, originalCustomer].sort((a, b) => a.name.localeCompare(b.name)));
+      }
       toast({
         title: "Error",
         description: error.message || "Failed to delete customer",
