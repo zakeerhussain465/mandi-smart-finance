@@ -25,15 +25,30 @@ export const PaymentUpdateDialog: React.FC<PaymentUpdateDialogProps> = ({
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!paymentAmount || parseFloat(paymentAmount) <= 0) return;
+    console.log('Payment dialog submit clicked');
+    
+    if (!paymentAmount || parseFloat(paymentAmount) <= 0) {
+      console.log('Invalid payment amount:', paymentAmount);
+      return;
+    }
 
     const newPaidAmount = transaction.paid_amount + parseFloat(paymentAmount);
     const newStatus = newPaidAmount >= transaction.total_amount ? 'completed' : 'pending';
+
+    console.log('Submitting payment update:', {
+      transactionId: transaction.id,
+      oldPaidAmount: transaction.paid_amount,
+      newPaidAmount: newPaidAmount,
+      paymentAmount: parseFloat(paymentAmount),
+      newStatus: newStatus
+    });
 
     const success = await updateTransaction(transaction.id, {
       paid_amount: newPaidAmount,
       status: newStatus,
     });
+
+    console.log('Payment update result:', success);
 
     if (success) {
       onOpenChange(false);

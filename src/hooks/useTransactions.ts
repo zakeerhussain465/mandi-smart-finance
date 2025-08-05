@@ -187,6 +187,10 @@ export const useTransactions = () => {
             
           if (updateError) {
             console.error('Error updating customer balance:', updateError);
+          } else {
+            console.log('Customer balance updated successfully');
+            // Force refresh of customer data
+            window.dispatchEvent(new CustomEvent('refreshCustomers'));
           }
         }
       }

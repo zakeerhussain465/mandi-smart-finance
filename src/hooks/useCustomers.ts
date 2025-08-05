@@ -54,6 +54,7 @@ export const useCustomers = () => {
           filter: `user_id=eq.${user.id}`
         },
         (payload) => {
+          console.log('Real-time customer update received:', payload);
           setCustomers(prev => prev.map(c => 
             c.id === payload.new.id ? payload.new as Customer : c
           ));
@@ -65,6 +66,11 @@ export const useCustomers = () => {
       supabase.removeChannel(channel);
     };
   }, [user]);
+
+  // Refresh customers after transactions to ensure balance updates
+  const refreshCustomers = () => {
+    fetchCustomers();
+  };
 
   const createCustomer = async (customerData: Omit<Customer, 'id' | 'balance' | 'created_at'>) => {
     if (!user) return null;
@@ -184,6 +190,17 @@ export const useCustomers = () => {
     }
   };
 
+  // Listen for custom refresh events
+  useEffect(() => {
+    const handleRefresh = () => {
+      console.log('Refreshing customers due to balance update');
+      fetchCustomers();
+    };
+
+    window.addEventListener('refreshCustomers', handleRefresh);
+    return () => window.removeEventListener('refreshCustomers', handleRefresh);
+  }, []);
+
   useEffect(() => {
     fetchCustomers();
   }, [user]);
@@ -194,6 +211,7 @@ export const useCustomers = () => {
     createCustomer,
     updateCustomer,
     deleteCustomer,
-    refetch: fetchCustomers
+    refetch: fetchCustomers,
+    refreshCustomers
   };
 };
