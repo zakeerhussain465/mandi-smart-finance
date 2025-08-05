@@ -1,7 +1,7 @@
 import React from 'react';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/components/auth/AuthProvider';
-import { LogOut, Home, Users, ShoppingCart, BarChart3, Apple, Package } from 'lucide-react';
+import { LogOut, Home, Users, ShoppingCart, BarChart3, Apple, Package, RefreshCw } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 interface LayoutProps {
@@ -45,6 +45,15 @@ export const Layout: React.FC<LayoutProps> = ({ children, currentView, onViewCha
             </nav>
           </div>
           <div className="flex items-center space-x-4">
+            <Button 
+              variant="outline" 
+              size="sm" 
+              onClick={() => window.location.reload()}
+              className="flex items-center space-x-2"
+            >
+              <RefreshCw className="h-4 w-4" />
+              <span className="hidden sm:inline">Refresh</span>
+            </Button>
             <span className="text-sm text-muted-foreground">
               {user?.email}
             </span>
