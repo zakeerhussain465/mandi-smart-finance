@@ -107,6 +107,13 @@ export const useTrayTransactions = () => {
       const currentTray = trayTransactions.find(t => t.id === id);
       if (!currentTray) throw new Error('Tray transaction not found');
 
+      console.log('Before tray payment update:', {
+        trayId: id,
+        currentPaidAmount: currentTray.paid_amount,
+        newPaidAmount: updates.paid_amount,
+        customerId: currentTray.customer_id
+      });
+
       const { data, error } = await supabase
         .from('tray_transactions')
         .update(updates)
@@ -121,22 +128,41 @@ export const useTrayTransactions = () => {
       
       // Update customer balance if paid_amount changed
       if (updates.paid_amount !== undefined && updates.paid_amount !== currentTray.paid_amount) {
+        // When more payment is made, reduce the customer balance
         const balanceChange = currentTray.paid_amount - updates.paid_amount;
         
+        console.log('Calculating tray balance change:', {
+          oldPaidAmount: currentTray.paid_amount,
+          newPaidAmount: updates.paid_amount,
+          balanceChange: balanceChange
+        });
+        
         // Get current customer balance
-        const { data: customer } = await supabase
+        const { data: customer, error: customerError } = await supabase
           .from('customers')
           .select('balance')
           .eq('id', currentTray.customer_id)
           .single();
         
-        if (customer) {
-          await supabase
+        if (customerError) {
+          console.error('Error fetching customer for tray:', customerError);
+        } else if (customer) {
+          const newBalance = customer.balance + balanceChange;
+          console.log('Updating customer balance from tray:', {
+            customerId: currentTray.customer_id,
+            oldBalance: customer.balance,
+            balanceChange: balanceChange,
+            newBalance: newBalance
+          });
+          
+          const { error: updateError } = await supabase
             .from('customers')
-            .update({ 
-              balance: customer.balance + balanceChange
-            })
+            .update({ balance: newBalance })
             .eq('id', currentTray.customer_id);
+            
+          if (updateError) {
+            console.error('Error updating customer balance from tray:', updateError);
+          }
         }
       }
       
@@ -148,6 +174,7 @@ export const useTrayTransactions = () => {
       
       return data;
     } catch (error: any) {
+      console.error('Tray transaction update error:', error);
       toast({
         title: "Error",
         description: error.message || "Failed to update tray transaction",

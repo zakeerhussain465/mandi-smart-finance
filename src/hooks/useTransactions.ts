@@ -131,6 +131,13 @@ export const useTransactions = () => {
       const currentTransaction = transactions.find(t => t.id === id);
       if (!currentTransaction) throw new Error('Transaction not found');
 
+      console.log('Before payment update:', {
+        transactionId: id,
+        currentPaidAmount: currentTransaction.paid_amount,
+        newPaidAmount: updates.paid_amount,
+        customerId: currentTransaction.customer_id
+      });
+
       const { data, error } = await supabase
         .from('transactions')
         .update(updates)
@@ -146,22 +153,41 @@ export const useTransactions = () => {
       
       // Update customer balance if paid_amount changed
       if (updates.paid_amount !== undefined && updates.paid_amount !== currentTransaction.paid_amount) {
+        // When more payment is made, reduce the customer balance
         const balanceChange = currentTransaction.paid_amount - updates.paid_amount;
         
+        console.log('Calculating balance change:', {
+          oldPaidAmount: currentTransaction.paid_amount,
+          newPaidAmount: updates.paid_amount,
+          balanceChange: balanceChange
+        });
+        
         // Get current customer balance
-        const { data: customer } = await supabase
+        const { data: customer, error: customerError } = await supabase
           .from('customers')
           .select('balance')
           .eq('id', currentTransaction.customer_id)
           .single();
         
-        if (customer) {
-          await supabase
+        if (customerError) {
+          console.error('Error fetching customer:', customerError);
+        } else if (customer) {
+          const newBalance = customer.balance + balanceChange;
+          console.log('Updating customer balance:', {
+            customerId: currentTransaction.customer_id,
+            oldBalance: customer.balance,
+            balanceChange: balanceChange,
+            newBalance: newBalance
+          });
+          
+          const { error: updateError } = await supabase
             .from('customers')
-            .update({ 
-              balance: customer.balance + balanceChange
-            })
+            .update({ balance: newBalance })
             .eq('id', currentTransaction.customer_id);
+            
+          if (updateError) {
+            console.error('Error updating customer balance:', updateError);
+          }
         }
       }
       
@@ -173,6 +199,7 @@ export const useTransactions = () => {
       
       return data;
     } catch (error: any) {
+      console.error('Transaction update error:', error);
       toast({
         title: "Error",
         description: error.message || "Failed to update transaction",
