@@ -39,6 +39,33 @@ export const useCustomers = () => {
     }
   };
 
+  // Set up real-time updates for customer balances
+  useEffect(() => {
+    if (!user) return;
+
+    const channel = supabase
+      .channel('customer-changes')
+      .on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'customers',
+          filter: `user_id=eq.${user.id}`
+        },
+        (payload) => {
+          setCustomers(prev => prev.map(c => 
+            c.id === payload.new.id ? payload.new as Customer : c
+          ));
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [user]);
+
   const createCustomer = async (customerData: Omit<Customer, 'id' | 'balance' | 'created_at'>) => {
     if (!user) return null;
 

@@ -127,6 +127,10 @@ export const useTransactions = () => {
 
   const updateTransaction = async (id: string, updates: Partial<Transaction>) => {
     try {
+      // Get the current transaction to calculate balance changes
+      const currentTransaction = transactions.find(t => t.id === id);
+      if (!currentTransaction) throw new Error('Transaction not found');
+
       const { data, error } = await supabase
         .from('transactions')
         .update(updates)
@@ -139,6 +143,27 @@ export const useTransactions = () => {
         .single();
 
       if (error) throw error;
+      
+      // Update customer balance if paid_amount changed
+      if (updates.paid_amount !== undefined && updates.paid_amount !== currentTransaction.paid_amount) {
+        const balanceChange = currentTransaction.paid_amount - updates.paid_amount;
+        
+        // Get current customer balance
+        const { data: customer } = await supabase
+          .from('customers')
+          .select('balance')
+          .eq('id', currentTransaction.customer_id)
+          .single();
+        
+        if (customer) {
+          await supabase
+            .from('customers')
+            .update({ 
+              balance: customer.balance + balanceChange
+            })
+            .eq('id', currentTransaction.customer_id);
+        }
+      }
       
       setTransactions(prev => prev.map(t => t.id === id ? data : t));
       toast({

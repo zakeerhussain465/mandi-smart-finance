@@ -103,6 +103,10 @@ export const useTrayTransactions = () => {
 
   const updateTrayTransaction = async (id: string, updates: Partial<TrayTransaction>) => {
     try {
+      // Get the current tray transaction to calculate balance changes
+      const currentTray = trayTransactions.find(t => t.id === id);
+      if (!currentTray) throw new Error('Tray transaction not found');
+
       const { data, error } = await supabase
         .from('tray_transactions')
         .update(updates)
@@ -114,6 +118,27 @@ export const useTrayTransactions = () => {
         .single();
 
       if (error) throw error;
+      
+      // Update customer balance if paid_amount changed
+      if (updates.paid_amount !== undefined && updates.paid_amount !== currentTray.paid_amount) {
+        const balanceChange = currentTray.paid_amount - updates.paid_amount;
+        
+        // Get current customer balance
+        const { data: customer } = await supabase
+          .from('customers')
+          .select('balance')
+          .eq('id', currentTray.customer_id)
+          .single();
+        
+        if (customer) {
+          await supabase
+            .from('customers')
+            .update({ 
+              balance: customer.balance + balanceChange
+            })
+            .eq('id', currentTray.customer_id);
+        }
+      }
       
       setTrayTransactions(prev => prev.map(t => t.id === id ? data : t));
       toast({
