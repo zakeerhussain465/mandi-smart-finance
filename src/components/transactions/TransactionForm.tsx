@@ -96,6 +96,7 @@ export const TransactionForm: React.FC = () => {
         weight: parseFloat(quantity),
         rate_per_kg: parseFloat(pricePerKg),
         paid_amount: parseFloat(paidAmount || '0'),
+        number_of_trays: parseInt(numberOfTrays || '1'),
         notes: trayNotes
       });
     }

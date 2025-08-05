@@ -11,6 +11,7 @@ export interface TrayTransaction {
   rate_per_kg: number;
   total_amount: number;
   paid_amount: number;
+  number_of_trays: number;
   status: 'available' | 'in_use' | 'maintenance';
   notes?: string;
   created_at: string;
@@ -26,6 +27,7 @@ export interface CreateTrayTransactionData {
   weight: number;
   rate_per_kg: number;
   paid_amount: number;
+  number_of_trays: number;
   notes?: string;
 }
 

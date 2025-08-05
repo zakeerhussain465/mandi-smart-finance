@@ -173,6 +173,7 @@ export type Database = {
           customer_id: string
           id: string
           notes: string | null
+          number_of_trays: number | null
           paid_amount: number | null
           rate_per_kg: number
           status: Database["public"]["Enums"]["tray_status"] | null
@@ -187,6 +188,7 @@ export type Database = {
           customer_id: string
           id?: string
           notes?: string | null
+          number_of_trays?: number | null
           paid_amount?: number | null
           rate_per_kg: number
           status?: Database["public"]["Enums"]["tray_status"] | null
@@ -201,6 +203,7 @@ export type Database = {
           customer_id?: string
           id?: string
           notes?: string | null
+          number_of_trays?: number | null
           paid_amount?: number | null
           rate_per_kg?: number
           status?: Database["public"]["Enums"]["tray_status"] | null

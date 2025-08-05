@@ -18,6 +18,7 @@ export const TrayManagement: React.FC = () => {
   const [weight, setWeight] = useState('');
   const [ratePerKg, setRatePerKg] = useState('');
   const [paidAmount, setPaidAmount] = useState('');
+  const [numberOfTrays, setNumberOfTrays] = useState('1');
   const [notes, setNotes] = useState('');
 
   const { customers } = useCustomers();
@@ -38,6 +39,7 @@ export const TrayManagement: React.FC = () => {
       weight: parseFloat(weight),
       rate_per_kg: parseFloat(ratePerKg),
       paid_amount: parseFloat(paidAmount || '0'),
+      number_of_trays: parseInt(numberOfTrays),
       notes: notes || undefined,
     };
 
@@ -50,6 +52,7 @@ export const TrayManagement: React.FC = () => {
       setWeight('');
       setRatePerKg('');
       setPaidAmount('');
+      setNumberOfTrays('1');
       setNotes('');
     }
   };
@@ -111,7 +114,7 @@ export const TrayManagement: React.FC = () => {
                 </Select>
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-3 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="trayNumber">Tray Number *</Label>
                   <Input
@@ -131,6 +134,18 @@ export const TrayManagement: React.FC = () => {
                     value={weight}
                     onChange={(e) => setWeight(e.target.value)}
                     placeholder="0.00"
+                    required
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="numberOfTrays">Number of Trays *</Label>
+                  <Input
+                    id="numberOfTrays"
+                    type="number"
+                    min="1"
+                    value={numberOfTrays}
+                    onChange={(e) => setNumberOfTrays(e.target.value)}
+                    placeholder="1"
                     required
                   />
                 </div>
@@ -233,13 +248,17 @@ export const TrayManagement: React.FC = () => {
                 </div>
               </CardHeader>
               <CardContent>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                   <div>
                     <p className="text-sm font-medium text-muted-foreground">Weight & Rate</p>
                     <p className="font-semibold">{tray.weight}kg × ₹{tray.rate_per_kg}/kg</p>
                     <p className="text-sm text-muted-foreground">
                       Issued: {new Date(tray.created_at).toLocaleDateString()}
                     </p>
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium text-muted-foreground">Number of Trays</p>
+                    <p className="font-semibold">{tray.number_of_trays}</p>
                   </div>
                   <div>
                     <p className="text-sm font-medium text-muted-foreground">Amount</p>
