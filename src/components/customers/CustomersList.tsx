@@ -1,24 +1,25 @@
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { useCustomers } from '@/hooks/useCustomers';
 import { useTransactions } from '@/hooks/useTransactions';
-import { Plus, Users, Phone, MapPin, Loader2, ArrowLeft, Receipt, Eye, Trash2 } from 'lucide-react';
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
+import { CustomerManager } from './CustomerManager';
+import { Users, Plus, Eye, Trash2, Phone, MapPin, Loader2, ArrowLeft, Receipt } from 'lucide-react';
 
 export const CustomersList: React.FC = () => {
-  const [open, setOpen] = useState(false);
-  const [selectedCustomer, setSelectedCustomer] = useState<any>(null);
-  const [name, setName] = useState('');
-  const [phone, setPhone] = useState('');
-  const [address, setAddress] = useState('');
-  
-  const { customers, loading, createCustomer, deleteCustomer } = useCustomers();
+  const { customers, loading, createCustomer, deleteCustomer, updateCustomer } = useCustomers();
   const { transactions } = useTransactions();
+  const [selectedCustomer, setSelectedCustomer] = useState<any>(null);
+  const [showNewCustomerDialog, setShowNewCustomerDialog] = useState(false);
+  const [showCustomerManager, setShowCustomerManager] = useState(false);
+  const [newCustomerName, setNewCustomerName] = useState('');
+  const [newCustomerPhone, setNewCustomerPhone] = useState('');
+  const [newCustomerAddress, setNewCustomerAddress] = useState('');
 
   // Calculate transaction counts for each customer
   const customerTransactionCounts = transactions.reduce((acc, t) => {
@@ -29,19 +30,28 @@ export const CustomersList: React.FC = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!name.trim()) return;
+    if (!newCustomerName.trim()) return;
 
-    const customer = await createCustomer({
-      name: name.trim(),
-      phone: phone.trim() || undefined,
-      address: address.trim() || undefined,
+    const newCustomer = await createCustomer({
+      name: newCustomerName,
+      phone: newCustomerPhone || undefined,
+      address: newCustomerAddress || undefined,
     });
 
-    if (customer) {
-      setOpen(false);
-      setName('');
-      setPhone('');
-      setAddress('');
+    if (newCustomer) {
+      // Auto-show new customers in the list
+      await updateCustomer(newCustomer.id, { show_in_list: true });
+      setShowNewCustomerDialog(false);
+      setNewCustomerName('');
+      setNewCustomerPhone('');
+      setNewCustomerAddress('');
+    }
+  };
+
+  const handleDeleteCustomer = async (customerId: string) => {
+    const success = await deleteCustomer(customerId);
+    if (success && selectedCustomer?.id === customerId) {
+      setSelectedCustomer(null);
     }
   };
 
@@ -50,12 +60,6 @@ export const CustomersList: React.FC = () => {
     ? transactions.filter(t => t.customer_id === selectedCustomer.id)
     : [];
 
-  const handleDeleteCustomer = async (customerId: string) => {
-    const success = await deleteCustomer(customerId);
-    if (success && selectedCustomer?.id === customerId) {
-      setSelectedCustomer(null);
-    }
-  };
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -69,6 +73,10 @@ export const CustomersList: React.FC = () => {
         return 'bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-200';
     }
   };
+
+  if (showCustomerManager) {
+    return <CustomerManager />;
+  }
 
   if (loading) {
     return (
@@ -209,57 +217,67 @@ export const CustomersList: React.FC = () => {
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <h2 className="text-2xl font-bold">Customers</h2>
-        <Dialog open={open} onOpenChange={setOpen}>
-          <DialogTrigger asChild>
-            <Button className="flex items-center space-x-2">
-              <Plus className="h-4 w-4" />
-              <span>Add Customer</span>
-            </Button>
-          </DialogTrigger>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>Add New Customer</DialogTitle>
-            </DialogHeader>
-            <form onSubmit={handleSubmit} className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="name">Name *</Label>
-                <Input
-                  id="name"
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
-                  placeholder="Customer name"
-                  required
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="phone">Phone</Label>
-                <Input
-                  id="phone"
-                  value={phone}
-                  onChange={(e) => setPhone(e.target.value)}
-                  placeholder="Phone number"
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="address">Address</Label>
-                <Input
-                  id="address"
-                  value={address}
-                  onChange={(e) => setAddress(e.target.value)}
-                  placeholder="Address"
-                />
-              </div>
-              <div className="flex justify-end space-x-2">
-                <Button type="button" variant="outline" onClick={() => setOpen(false)}>
-                  Cancel
-                </Button>
-                <Button type="submit">
-                  Add Customer
-                </Button>
-              </div>
-            </form>
-          </DialogContent>
-        </Dialog>
+        <div className="flex space-x-2">
+          <Button
+            variant="outline"
+            onClick={() => setShowCustomerManager(true)}
+            className="flex items-center space-x-2"
+          >
+            <Eye className="h-4 w-4" />
+            <span>Manage Visibility</span>
+          </Button>
+          <Dialog open={showNewCustomerDialog} onOpenChange={setShowNewCustomerDialog}>
+            <DialogTrigger asChild>
+              <Button className="flex items-center space-x-2">
+                <Plus className="h-4 w-4" />
+                <span>Add Customer</span>
+              </Button>
+            </DialogTrigger>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>Add New Customer</DialogTitle>
+              </DialogHeader>
+              <form onSubmit={handleSubmit} className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="name">Name *</Label>
+                  <Input
+                    id="name"
+                    value={newCustomerName}
+                    onChange={(e) => setNewCustomerName(e.target.value)}
+                    placeholder="Customer name"
+                    required
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="phone">Phone</Label>
+                  <Input
+                    id="phone"
+                    value={newCustomerPhone}
+                    onChange={(e) => setNewCustomerPhone(e.target.value)}
+                    placeholder="Phone number"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="address">Address</Label>
+                  <Input
+                    id="address"
+                    value={newCustomerAddress}
+                    onChange={(e) => setNewCustomerAddress(e.target.value)}
+                    placeholder="Address"
+                  />
+                </div>
+                <div className="flex justify-end space-x-2">
+                  <Button type="button" variant="outline" onClick={() => setShowNewCustomerDialog(false)}>
+                    Cancel
+                  </Button>
+                  <Button type="submit">
+                    Add Customer
+                  </Button>
+                </div>
+              </form>
+            </DialogContent>
+          </Dialog>
+        </div>
       </div>
 
       <div className="grid gap-4">
@@ -267,10 +285,18 @@ export const CustomersList: React.FC = () => {
           <Card>
             <CardContent className="flex flex-col items-center justify-center h-64">
               <Users className="h-12 w-12 text-muted-foreground mb-4" />
-              <h3 className="text-lg font-semibold text-muted-foreground">No customers yet</h3>
-              <p className="text-muted-foreground text-center">
-                Add your first customer to get started
+              <h3 className="text-lg font-semibold text-muted-foreground">No customers selected</h3>
+              <p className="text-muted-foreground text-center mb-4">
+                No customers are currently shown in this section. Use "Manage Visibility" to select which customers to display.
               </p>
+              <Button 
+                variant="outline" 
+                onClick={() => setShowCustomerManager(true)}
+                className="flex items-center space-x-2"
+              >
+                <Eye className="h-4 w-4" />
+                <span>Manage Customer Visibility</span>
+              </Button>
             </CardContent>
           </Card>
         ) : (

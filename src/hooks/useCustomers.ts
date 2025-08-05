@@ -9,7 +9,14 @@ export interface Customer {
   phone?: string;
   address?: string;
   balance: number;
+  show_in_list: boolean;
   created_at: string;
+}
+
+export interface CreateCustomerData {
+  name: string;
+  phone?: string;
+  address?: string;
 }
 
 export const useCustomers = () => {
@@ -24,6 +31,7 @@ export const useCustomers = () => {
       const { data, error } = await supabase
         .from('customers')
         .select('*')
+        .eq('show_in_list', true)  // Only show selected customers
         .order('name');
 
       if (error) throw error;
@@ -72,7 +80,7 @@ export const useCustomers = () => {
     fetchCustomers();
   };
 
-  const createCustomer = async (customerData: Omit<Customer, 'id' | 'balance' | 'created_at'>) => {
+  const createCustomer = async (customerData: CreateCustomerData) => {
     if (!user) return null;
 
     // Optimistic update - create temporary customer
@@ -80,6 +88,7 @@ export const useCustomers = () => {
       id: `temp-${Date.now()}`,
       ...customerData,
       balance: 0,
+      show_in_list: false,
       created_at: new Date().toISOString()
     };
     
@@ -91,7 +100,8 @@ export const useCustomers = () => {
         .insert([{
           ...customerData,
           user_id: user.id,
-          balance: 0
+          balance: 0,
+          show_in_list: false  // New customers are hidden by default
         }])
         .select()
         .single();
@@ -205,6 +215,28 @@ export const useCustomers = () => {
     fetchCustomers();
   }, [user]);
 
+  // Function to fetch all customers (including those not shown in list)
+  const fetchAllCustomers = async () => {
+    if (!user) return [];
+    
+    try {
+      const { data, error } = await supabase
+        .from('customers')
+        .select('*')
+        .order('name');
+
+      if (error) throw error;
+      return data || [];
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: "Failed to fetch all customers",
+        variant: "destructive"
+      });
+      return [];
+    }
+  };
+
   return {
     customers,
     loading,
@@ -212,6 +244,7 @@ export const useCustomers = () => {
     updateCustomer,
     deleteCustomer,
     refetch: fetchCustomers,
-    refreshCustomers
+    refreshCustomers,
+    fetchAllCustomers
   };
 };
