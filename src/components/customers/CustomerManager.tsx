@@ -5,9 +5,13 @@ import { Badge } from '@/components/ui/badge';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { useCustomers, Customer } from '@/hooks/useCustomers';
-import { Users, Eye, EyeOff } from 'lucide-react';
+import { Users, Eye, EyeOff, ArrowLeft } from 'lucide-react';
 
-export const CustomerManager: React.FC = () => {
+interface CustomerManagerProps {
+  onBack: () => void;
+}
+
+export const CustomerManager: React.FC<CustomerManagerProps> = ({ onBack }) => {
   const { customers, updateCustomer, fetchAllCustomers } = useCustomers();
   const [allCustomers, setAllCustomers] = useState<Customer[]>([]);
   const [loading, setLoading] = useState(true);
@@ -50,9 +54,20 @@ export const CustomerManager: React.FC = () => {
 
   return (
     <div className="space-y-6">
-      <div className="flex justify-between items-center">
-        <h2 className="text-2xl font-bold">Manage Customer Visibility</h2>
-        <Badge variant="outline" className="flex items-center space-x-2">
+      <div className="flex items-center space-x-4">
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={onBack}
+          className="flex items-center space-x-2"
+        >
+          <ArrowLeft className="h-4 w-4" />
+          <span>Back to Customers</span>
+        </Button>
+        <div>
+          <h2 className="text-2xl font-bold">Manage Customer Visibility</h2>
+        </div>
+        <Badge variant="outline" className="flex items-center space-x-2 ml-auto">
           <Users className="h-4 w-4" />
           <span>{allCustomers.filter(c => c.show_in_list).length} shown in customers section</span>
         </Badge>

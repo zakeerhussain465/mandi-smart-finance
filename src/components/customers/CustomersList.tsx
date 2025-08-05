@@ -75,7 +75,7 @@ export const CustomersList: React.FC = () => {
   };
 
   if (showCustomerManager) {
-    return <CustomerManager />;
+    return <CustomerManager onBack={() => setShowCustomerManager(false)} />;
   }
 
   if (loading) {
