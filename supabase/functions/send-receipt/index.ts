@@ -20,6 +20,12 @@ serve(async (req) => {
 
     const balance = transaction.total_amount - transaction.paid_amount;
     
+    // Determine unit and pricing based on pricing_mode
+    const isPerBox = transaction.pricing_mode === 'per_box';
+    const unit = isPerBox ? 'box' : 'kg';
+    const rate = isPerBox ? transaction.price_per_unit : transaction.price_per_kg;
+    const categoryText = transaction.fruit_categories ? ` (${transaction.fruit_categories.name})` : '';
+    
     // Create a simple receipt text for WhatsApp
     const receiptText = `
 🍎 *FRUIT STORE RECEIPT* 🍎
@@ -34,9 +40,9 @@ ${transaction.customers.phone ? `📱 ${transaction.customers.phone}` : ''}
 ━━━━━━━━━━━━━━━━━━━━━
 🛒 *PRODUCT DETAILS*
 ━━━━━━━━━━━━━━━━━━━━━
-🥭 Product: ${transaction.fruits.name}
-⚖️ Quantity: ${transaction.quantity} kg
-💰 Rate: ₹${transaction.price_per_kg}/kg
+🥭 Product: ${transaction.fruits.name}${categoryText}
+⚖️ Quantity: ${transaction.quantity} ${unit}
+💰 Rate: ₹${rate}/${unit}
 
 ━━━━━━━━━━━━━━━━━━━━━
 💵 *PAYMENT SUMMARY*

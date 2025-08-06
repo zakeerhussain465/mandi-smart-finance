@@ -79,7 +79,10 @@ export const TransactionsList: React.FC = () => {
                     <p className="text-sm font-medium text-muted-foreground">Product</p>
                     <p className="font-semibold">{transaction.fruits.name}</p>
                     <p className="text-sm text-muted-foreground">
-                      {transaction.quantity}kg × ₹{transaction.price_per_kg}/kg
+                      {transaction.quantity}{(transaction as any).pricing_mode === 'per_box' ? ' boxes' : 'kg'} × ₹{(transaction as any).pricing_mode === 'per_box' ? (transaction as any).price_per_unit : transaction.price_per_kg}/{(transaction as any).pricing_mode === 'per_box' ? 'box' : 'kg'}
+                      {(transaction as any).fruit_categories && (
+                        <span className="block text-xs">Category: {(transaction as any).fruit_categories.name}</span>
+                      )}
                     </p>
                   </div>
                   <div>

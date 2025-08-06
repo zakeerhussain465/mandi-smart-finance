@@ -13,8 +13,11 @@ interface Transaction {
   id: string;
   customers: { name: string; phone?: string };
   fruits: { name: string };
+  fruit_categories?: { name: string };
   quantity: number;
   price_per_kg: number;
+  price_per_unit?: number;
+  pricing_mode?: string;
   total_amount: number;
   paid_amount: number;
   status: string;
@@ -135,15 +138,26 @@ export const ReceiptDialog: React.FC<ReceiptDialogProps> = ({
               <div className="space-y-2">
                 <div className="flex justify-between">
                   <span className="font-medium">Product:</span>
-                  <span>{transaction.fruits.name}</span>
+                  <span>
+                    {transaction.fruits.name}
+                    {transaction.fruit_categories && (
+                      <span className="text-sm text-muted-foreground block">
+                        Category: {transaction.fruit_categories.name}
+                      </span>
+                    )}
+                  </span>
                 </div>
                 <div className="flex justify-between">
                   <span className="font-medium">Quantity:</span>
-                  <span>{transaction.quantity} kg</span>
+                  <span>
+                    {transaction.quantity} {transaction.pricing_mode === 'per_box' ? 'boxes' : 'kg'}
+                  </span>
                 </div>
                 <div className="flex justify-between">
                   <span className="font-medium">Rate:</span>
-                  <span>₹{transaction.price_per_kg}/kg</span>
+                  <span>
+                    ₹{transaction.pricing_mode === 'per_box' ? transaction.price_per_unit : transaction.price_per_kg}/{transaction.pricing_mode === 'per_box' ? 'box' : 'kg'}
+                  </span>
                 </div>
               </div>
 

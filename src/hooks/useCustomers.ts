@@ -171,9 +171,38 @@ export const useCustomers = () => {
     console.log('Attempting to delete customer:', id);
     
     try {
-      // With cascade foreign keys, we can delete the customer directly
-      // and all related transactions will be automatically deleted
-      console.log('Deleting customer with cascade...');
+      // First, check if customer has transactions or tray transactions
+      const { data: transactions } = await supabase
+        .from('transactions')
+        .select('id')
+        .eq('customer_id', id)
+        .limit(1);
+      
+      const { data: trayTransactions } = await supabase
+        .from('tray_transactions')
+        .select('id')
+        .eq('customer_id', id)
+        .limit(1);
+
+      if (transactions && transactions.length > 0) {
+        toast({
+          title: "Cannot Delete Customer",
+          description: "This customer has existing transactions. Please remove all transactions first.",
+          variant: "destructive"
+        });
+        return false;
+      }
+
+      if (trayTransactions && trayTransactions.length > 0) {
+        toast({
+          title: "Cannot Delete Customer",
+          description: "This customer has existing tray transactions. Please remove all tray transactions first.",
+          variant: "destructive"
+        });
+        return false;
+      }
+      
+      console.log('Deleting customer...');
       const { error } = await supabase
         .from('customers')
         .delete()
@@ -191,7 +220,7 @@ export const useCustomers = () => {
       
       toast({
         title: "Success",
-        description: "Customer and all related data deleted successfully"
+        description: "Customer deleted successfully"
       });
       
       return true;
