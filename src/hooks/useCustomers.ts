@@ -169,6 +169,28 @@ export const useCustomers = () => {
 
   const deleteCustomer = async (id: string) => {
     try {
+      // Check if customer has any related transactions
+      const { data: relatedTransactions } = await supabase
+        .from('transactions')
+        .select('id')
+        .eq('customer_id', id)
+        .limit(1);
+
+      const { data: relatedTrayTransactions } = await supabase
+        .from('tray_transactions')
+        .select('id')
+        .eq('customer_id', id)
+        .limit(1);
+
+      if (relatedTransactions?.length || relatedTrayTransactions?.length) {
+        toast({
+          title: "Cannot Delete Customer",
+          description: "This customer has transaction history. Delete their transactions first.",
+          variant: "destructive"
+        });
+        return false;
+      }
+
       const { error } = await supabase
         .from('customers')
         .delete()

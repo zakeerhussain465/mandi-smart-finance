@@ -59,10 +59,23 @@ export const ReceiptDialog: React.FC<ReceiptDialogProps> = ({
 
       if (error) throw error;
 
-      toast({
-        title: "Success",
-        description: `Receipt sent to ${phoneNumber}`,
-      });
+      // If PDF data is returned, offer download
+      if (data.pdfData) {
+        const link = document.createElement('a');
+        link.href = data.downloadUrl;
+        link.download = `receipt-${transaction.id.slice(-8)}.pdf`;
+        link.click();
+        
+        toast({
+          title: "Success",
+          description: `Receipt PDF downloaded and ready for sharing to ${phoneNumber}`,
+        });
+      } else {
+        toast({
+          title: "Success",
+          description: `Receipt sent to ${phoneNumber}`,
+        });
+      }
       
       onOpenChange(false);
     } catch (error: any) {
