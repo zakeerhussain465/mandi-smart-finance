@@ -51,7 +51,19 @@ export const useTransactions = () => {
         .order('created_at', { ascending: false });
 
       if (error) throw error;
-      setTransactions(data || []);
+      
+      // Filter out transactions where customer join failed (due to cascade deletion)
+      const validTransactions = (data || [])
+        .filter(transaction => 
+          transaction.customers !== null &&
+          typeof transaction.customers === 'object' && 
+          'name' in transaction.customers! &&
+          transaction.fruits !== null &&
+          typeof transaction.fruits === 'object' &&
+          'name' in transaction.fruits
+        ) as unknown as Transaction[];
+      
+      setTransactions(validTransactions);
     } catch (error: any) {
       toast({
         title: "Error",
@@ -108,7 +120,11 @@ export const useTransactions = () => {
         }
       }
       
-      setTransactions(prev => [data, ...prev]);
+      // Only add to state if customer join is valid
+      if (data.customers !== null && typeof data.customers === 'object' && 'name' in data.customers! &&
+          data.fruits !== null && typeof data.fruits === 'object' && 'name' in data.fruits!) {
+        setTransactions(prev => [data as unknown as Transaction, ...prev]);
+      }
       toast({
         title: "Success",
         description: "Transaction created successfully"
@@ -195,7 +211,14 @@ export const useTransactions = () => {
         }
       }
       
-      setTransactions(prev => prev.map(t => t.id === id ? data : t));
+      // Only update state if customer join is valid
+      if (data.customers !== null && typeof data.customers === 'object' && 'name' in data.customers! &&
+          data.fruits !== null && typeof data.fruits === 'object' && 'name' in data.fruits!) {
+        setTransactions(prev => prev.map(t => t.id === id ? data as unknown as Transaction : t));
+      } else {
+        // Remove transaction from state if customer was deleted
+        setTransactions(prev => prev.filter(t => t.id !== id));
+      }
       toast({
         title: "Success",
         description: "Transaction updated successfully"

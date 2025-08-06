@@ -49,7 +49,16 @@ export const useTrayTransactions = () => {
         .order('created_at', { ascending: false });
 
       if (error) throw error;
-      setTrayTransactions(data || []);
+      
+      // Filter out tray transactions where customer join failed (due to cascade deletion)
+      const validTrayTransactions = (data || [])
+        .filter(trayTransaction => 
+          trayTransaction.customers !== null && 
+          typeof trayTransaction.customers === 'object' && 
+          'name' in trayTransaction.customers!
+        ) as unknown as TrayTransaction[];
+      
+      setTrayTransactions(validTrayTransactions);
     } catch (error: any) {
       toast({
         title: "Error",
@@ -84,7 +93,10 @@ export const useTrayTransactions = () => {
 
       if (error) throw error;
       
-      setTrayTransactions(prev => [data, ...prev]);
+      // Only add to state if customer join is valid
+      if (data.customers !== null && typeof data.customers === 'object' && 'name' in data.customers!) {
+        setTrayTransactions(prev => [data as unknown as TrayTransaction, ...prev]);
+      }
       toast({
         title: "Success",
         description: "Tray transaction created successfully"
@@ -166,7 +178,13 @@ export const useTrayTransactions = () => {
         }
       }
       
-      setTrayTransactions(prev => prev.map(t => t.id === id ? data : t));
+      // Only update state if customer join is valid
+      if (data.customers !== null && typeof data.customers === 'object' && 'name' in data.customers!) {
+        setTrayTransactions(prev => prev.map(t => t.id === id ? data as unknown as TrayTransaction : t));
+      } else {
+        // Remove tray transaction from state if customer was deleted
+        setTrayTransactions(prev => prev.filter(t => t.id !== id));
+      }
       toast({
         title: "Success",
         description: "Tray transaction updated successfully"
