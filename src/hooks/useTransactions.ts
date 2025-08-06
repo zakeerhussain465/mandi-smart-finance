@@ -26,9 +26,11 @@ export interface Transaction {
 export interface CreateTransactionData {
   customer_id: string;
   fruit_id: string;
+  fruit_category_id?: string;
   quantity: number;
   price_per_kg: number;
   paid_amount: number;
+  pricing_mode?: string;
   notes?: string;
 }
 

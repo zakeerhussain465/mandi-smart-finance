@@ -206,11 +206,38 @@ export const useTrayTransactions = () => {
     fetchTrayTransactions();
   }, [user]);
 
+  const deleteTrayTransaction = async (id: string) => {
+    try {
+      const { error } = await supabase
+        .from('tray_transactions')
+        .delete()
+        .eq('id', id);
+
+      if (error) throw error;
+
+      setTrayTransactions(prev => prev.filter(t => t.id !== id));
+      toast({
+        title: "Success",
+        description: "Tray transaction deleted successfully"
+      });
+      
+      return true;
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to delete tray transaction",
+        variant: "destructive"
+      });
+      return false;
+    }
+  };
+
   return {
     trayTransactions,
     loading,
     createTrayTransaction,
     updateTrayTransaction,
+    deleteTrayTransaction,
     refetch: fetchTrayTransactions
   };
 };

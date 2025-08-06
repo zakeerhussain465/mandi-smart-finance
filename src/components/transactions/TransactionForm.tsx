@@ -8,6 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { useCustomers } from '@/hooks/useCustomers';
 import { useFruits } from '@/hooks/useFruits';
+import { useFruitCategories } from '@/hooks/useFruitCategories';
 import { useTransactions } from '@/hooks/useTransactions';
 import { useTrayTransactions } from '@/hooks/useTrayTransactions';
 import { Plus, UserPlus } from 'lucide-react';
@@ -16,12 +17,13 @@ export const TransactionForm: React.FC = () => {
   const [open, setOpen] = useState(false);
   const [customerId, setCustomerId] = useState('');
   const [fruitId, setFruitId] = useState('');
+  const [fruitCategoryId, setFruitCategoryId] = useState('');
   const [quantity, setQuantity] = useState('');
   const [pricePerKg, setPricePerKg] = useState('');
   const [paidAmount, setPaidAmount] = useState('');
   const [numberOfTrays, setNumberOfTrays] = useState('');
   const [notes, setNotes] = useState('');
-  const [pricingMode, setPricingMode] = useState<'kg' | 'unit'>('kg');
+  const [pricingMode, setPricingMode] = useState<'per_kg' | 'per_box'>('per_kg');
   const [showNewCustomer, setShowNewCustomer] = useState(false);
   const [newCustomerName, setNewCustomerName] = useState('');
   const [newCustomerPhone, setNewCustomerPhone] = useState('');
@@ -29,6 +31,7 @@ export const TransactionForm: React.FC = () => {
 
   const { customers, createCustomer } = useCustomers();
   const { fruits } = useFruits();
+  const { categories } = useFruitCategories();
   const { createTransaction } = useTransactions();
   const { createTrayTransaction } = useTrayTransactions();
 
@@ -79,9 +82,11 @@ export const TransactionForm: React.FC = () => {
     const transaction = await createTransaction({
       customer_id: customerIdToUse,
       fruit_id: fruitId,
+      fruit_category_id: fruitCategoryId || undefined,
       quantity: parseFloat(quantity),
       price_per_kg: parseFloat(pricePerKg),
       paid_amount: parseFloat(paidAmount || '0'),
+      pricing_mode: pricingMode,
       notes: notes || undefined,
     });
 
@@ -105,12 +110,13 @@ export const TransactionForm: React.FC = () => {
       setOpen(false);
       setCustomerId('');
       setFruitId('');
+      setFruitCategoryId('');
       setQuantity('');
       setPricePerKg('');
       setPaidAmount('');
       setNumberOfTrays('');
       setNotes('');
-      setPricingMode('kg');
+      setPricingMode('per_kg');
     }
   };
 
@@ -208,10 +214,11 @@ export const TransactionForm: React.FC = () => {
             <Label htmlFor="fruit">Fruit</Label>
             <Select value={fruitId} onValueChange={(value) => {
               setFruitId(value);
+              setFruitCategoryId(''); // Reset category when fruit changes
               const fruit = fruits.find(f => f.id === value);
               if (fruit) {
                 setPricePerKg(fruit.price_per_kg.toString());
-                setPricingMode('kg'); // Reset to kg when selecting new fruit
+                setPricingMode('per_kg'); // Reset to per_kg when selecting new fruit
               }
             }}>
               <SelectTrigger>
@@ -228,20 +235,63 @@ export const TransactionForm: React.FC = () => {
             </Select>
           </div>
 
+          {/* Fruit Category Selection */}
+          {fruitId && (() => {
+            const fruitCats = categories.filter(cat => cat.fruit_id === fruitId);
+            return fruitCats.length > 0 ? (
+              <div className="space-y-2">
+                <Label>Category (Optional)</Label>
+                <Select value={fruitCategoryId} onValueChange={(value) => {
+                  setFruitCategoryId(value);
+                  const category = categories.find(c => c.id === value);
+                  if (category) {
+                    if (category.price_per_kg) {
+                      setPricePerKg(category.price_per_kg.toString());
+                      setPricingMode('per_kg');
+                    } else if (category.price_per_unit) {
+                      setPricePerKg(category.price_per_unit.toString());
+                      setPricingMode('per_box');
+                    }
+                  }
+                }}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select category (optional)" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="">No specific category</SelectItem>
+                    {fruitCats.map((category) => (
+                      <SelectItem key={category.id} value={category.id}>
+                        {category.name} - ₹{category.price_per_kg || category.price_per_unit}/{category.unit}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            ) : null;
+          })()}
+
           {/* Pricing Mode Selection */}
           {fruitId && (() => {
             const selectedFruit = fruits.find(f => f.id === fruitId);
-            return selectedFruit?.price_per_unit && selectedFruit?.unit !== 'kg' ? (
+            const selectedCategory = fruitCategoryId ? categories.find(c => c.id === fruitCategoryId) : null;
+            const hasUnitPricing = selectedCategory?.price_per_unit || (selectedFruit?.price_per_unit && selectedFruit?.unit !== 'kg');
+            
+            return hasUnitPricing ? (
               <div className="space-y-2">
                 <Label>Pricing Mode</Label>
-                <Select value={pricingMode} onValueChange={(value: 'kg' | 'unit') => {
+                <Select value={pricingMode} onValueChange={(value: 'per_kg' | 'per_box') => {
                   setPricingMode(value);
-                  const fruit = fruits.find(f => f.id === fruitId);
-                  if (fruit) {
-                    if (value === 'kg') {
-                      setPricePerKg(fruit.price_per_kg.toString());
-                    } else {
-                      setPricePerKg(fruit.price_per_unit?.toString() || fruit.price_per_kg.toString());
+                  if (selectedCategory) {
+                    if (value === 'per_kg' && selectedCategory.price_per_kg) {
+                      setPricePerKg(selectedCategory.price_per_kg.toString());
+                    } else if (value === 'per_box' && selectedCategory.price_per_unit) {
+                      setPricePerKg(selectedCategory.price_per_unit.toString());
+                    }
+                  } else if (selectedFruit) {
+                    if (value === 'per_kg') {
+                      setPricePerKg(selectedFruit.price_per_kg.toString());
+                    } else if (selectedFruit.price_per_unit) {
+                      setPricePerKg(selectedFruit.price_per_unit.toString());
                     }
                   }
                 }}>
@@ -249,8 +299,8 @@ export const TransactionForm: React.FC = () => {
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="kg">Price per kg (₹{selectedFruit.price_per_kg})</SelectItem>
-                    <SelectItem value="unit">Price per {selectedFruit.unit} (₹{selectedFruit.price_per_unit})</SelectItem>
+                    <SelectItem value="per_kg">Price per kg</SelectItem>
+                    <SelectItem value="per_box">Price per {selectedCategory?.unit || selectedFruit?.unit}</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -260,7 +310,13 @@ export const TransactionForm: React.FC = () => {
           {/* Transaction Details */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div className="space-y-2">
-              <Label htmlFor="quantity">Quantity (kg)</Label>
+              <Label htmlFor="quantity">
+                Quantity ({pricingMode === 'per_kg' ? 'kg' : (() => {
+                  const selectedCategory = fruitCategoryId ? categories.find(c => c.id === fruitCategoryId) : null;
+                  const selectedFruit = fruits.find(f => f.id === fruitId);
+                  return selectedCategory?.unit || selectedFruit?.unit || 'boxes';
+                })()})
+              </Label>
               <Input
                 id="quantity"
                 type="number"
@@ -273,9 +329,10 @@ export const TransactionForm: React.FC = () => {
             </div>
             <div className="space-y-2">
               <Label htmlFor="pricePerKg">
-                Price per {pricingMode === 'kg' ? 'kg' : (() => {
+                Price per {pricingMode === 'per_kg' ? 'kg' : (() => {
+                  const selectedCategory = fruitCategoryId ? categories.find(c => c.id === fruitCategoryId) : null;
                   const selectedFruit = fruits.find(f => f.id === fruitId);
-                  return selectedFruit?.unit || 'unit';
+                  return selectedCategory?.unit || selectedFruit?.unit || 'box';
                 })()} (₹)
               </Label>
               <Input

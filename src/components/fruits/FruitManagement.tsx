@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -6,20 +6,30 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { useFruits } from '@/hooks/useFruits';
-import { Plus, Edit2, Loader2, Trash2 } from 'lucide-react';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
+import { useFruits } from '@/hooks/useFruits';
+import { useFruitCategories } from '@/hooks/useFruitCategories';
+import { Plus, Edit2, Loader2, Trash2, Search } from 'lucide-react';
 
 export const FruitManagement: React.FC = () => {
   const [open, setOpen] = useState(false);
   const [editingFruit, setEditingFruit] = useState<any>(null);
+  const [searchTerm, setSearchTerm] = useState('');
   const [name, setName] = useState('');
   const [pricePerKg, setPricePerKg] = useState('');
   const [pricePerUnit, setPricePerUnit] = useState('');
   const [unit, setUnit] = useState('kg');
   const [availableStock, setAvailableStock] = useState('');
+  const [categories, setCategories] = useState<Array<{
+    name: string; 
+    price_per_kg?: string; 
+    price_per_unit?: string; 
+    unit: string; 
+    available_stock?: string;
+  }>>([]);
 
   const { fruits, loading, createFruit, updateFruit, deleteFruit } = useFruits();
+  const { categories: fruitCategories, createCategory, updateCategory, deleteCategory } = useFruitCategories();
 
   const resetForm = () => {
     setName('');
@@ -27,6 +37,7 @@ export const FruitManagement: React.FC = () => {
     setPricePerUnit('');
     setUnit('kg');
     setAvailableStock('');
+    setCategories([]);
     setEditingFruit(null);
   };
 
@@ -51,6 +62,20 @@ export const FruitManagement: React.FC = () => {
     }
 
     if (success) {
+      // Handle categories
+      if (categories.length > 0) {
+        for (const category of categories) {
+          await createCategory({
+            fruit_id: success.id,
+            name: category.name,
+            price_per_kg: category.price_per_kg ? parseFloat(category.price_per_kg) : undefined,
+            price_per_unit: category.price_per_unit ? parseFloat(category.price_per_unit) : undefined,
+            unit: category.unit,
+            available_stock: category.available_stock ? parseFloat(category.available_stock) : 0,
+          });
+        }
+      }
+      
       setOpen(false);
       resetForm();
     }
@@ -63,12 +88,50 @@ export const FruitManagement: React.FC = () => {
     setPricePerUnit(fruit.price_per_unit?.toString() || '');
     setUnit(fruit.unit || 'kg');
     setAvailableStock(fruit.available_stock.toString());
+    
+    // Load existing categories for this fruit
+    const existingCategories = fruitCategories
+      .filter(cat => cat.fruit_id === fruit.id)
+      .map(cat => ({
+        name: cat.name,
+        price_per_kg: cat.price_per_kg?.toString() || '',
+        price_per_unit: cat.price_per_unit?.toString() || '',
+        unit: cat.unit,
+        available_stock: cat.available_stock?.toString() || ''
+      }));
+    
+    setCategories(existingCategories);
     setOpen(true);
   };
 
   const handleDelete = async (id: string) => {
     await deleteFruit(id);
   };
+
+  const addCategory = () => {
+    setCategories([...categories, { name: '', price_per_kg: '', price_per_unit: '', unit: 'kg', available_stock: '' }]);
+  };
+
+  const removeCategory = (index: number) => {
+    setCategories(categories.filter((_, i) => i !== index));
+  };
+
+  const updateCategoryField = (index: number, field: string, value: string) => {
+    const updatedCategories = [...categories];
+    updatedCategories[index] = { ...updatedCategories[index], [field]: value };
+    setCategories(updatedCategories);
+  };
+
+  // Filter fruits based on search term
+  const filteredFruits = useMemo(() => {
+    if (!searchTerm.trim()) return fruits;
+    
+    const searchLower = searchTerm.toLowerCase();
+    return fruits.filter(fruit => 
+      fruit.name.toLowerCase().includes(searchLower) ||
+      fruit.unit.toLowerCase().includes(searchLower)
+    );
+  }, [fruits, searchTerm]);
 
   if (loading) {
     return (
@@ -92,7 +155,7 @@ export const FruitManagement: React.FC = () => {
               <span>Add Fruit</span>
             </Button>
           </DialogTrigger>
-          <DialogContent>
+          <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle>{editingFruit ? 'Edit Fruit' : 'Add New Fruit'}</DialogTitle>
             </DialogHeader>
@@ -166,6 +229,92 @@ export const FruitManagement: React.FC = () => {
                 )}
               </div>
 
+              {/* Categories Section */}
+              <div className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <Label>Subcategories (Optional)</Label>
+                  <Button type="button" variant="outline" size="sm" onClick={addCategory}>
+                    <Plus className="h-4 w-4 mr-1" />
+                    Add Category
+                  </Button>
+                </div>
+                
+                {categories.map((category, index) => (
+                  <Card key={index} className="p-4">
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <Label>Category Name</Label>
+                        <Input
+                          value={category.name}
+                          onChange={(e) => updateCategoryField(index, 'name', e.target.value)}
+                          placeholder="e.g., Premium, Regular"
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label>Unit</Label>
+                        <Select 
+                          value={category.unit} 
+                          onValueChange={(value) => updateCategoryField(index, 'unit', value)}
+                        >
+                          <SelectTrigger>
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="kg">Kilogram (kg)</SelectItem>
+                            <SelectItem value="box">Box</SelectItem>
+                            <SelectItem value="piece">Piece</SelectItem>
+                            <SelectItem value="dozen">Dozen</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div className="space-y-2">
+                        <Label>Price per kg (₹)</Label>
+                        <Input
+                          type="number"
+                          step="0.01"
+                          value={category.price_per_kg}
+                          onChange={(e) => updateCategoryField(index, 'price_per_kg', e.target.value)}
+                          placeholder="0.00"
+                        />
+                      </div>
+                      {category.unit !== 'kg' && (
+                        <div className="space-y-2">
+                          <Label>Price per {category.unit} (₹)</Label>
+                          <Input
+                            type="number"
+                            step="0.01"
+                            value={category.price_per_unit}
+                            onChange={(e) => updateCategoryField(index, 'price_per_unit', e.target.value)}
+                            placeholder="0.00"
+                          />
+                        </div>
+                      )}
+                      <div className="space-y-2">
+                        <Label>Available Stock</Label>
+                        <Input
+                          type="number"
+                          step="0.01"
+                          value={category.available_stock}
+                          onChange={(e) => updateCategoryField(index, 'available_stock', e.target.value)}
+                          placeholder="0.00"
+                        />
+                      </div>
+                      <div className="flex items-end">
+                        <Button 
+                          type="button" 
+                          variant="outline" 
+                          size="sm" 
+                          onClick={() => removeCategory(index)}
+                          className="text-destructive"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </div>
+                  </Card>
+                ))}
+              </div>
+
               <div className="flex justify-end space-x-2">
                 <Button type="button" variant="outline" onClick={() => setOpen(false)}>
                   Cancel
@@ -177,6 +326,17 @@ export const FruitManagement: React.FC = () => {
             </form>
           </DialogContent>
         </Dialog>
+      </div>
+
+      {/* Search Bar */}
+      <div className="relative">
+        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
+        <Input
+          placeholder="Search fruits by name or unit..."
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
+          className="pl-10"
+        />
       </div>
 
       <Card>
@@ -192,59 +352,84 @@ export const FruitManagement: React.FC = () => {
                 <TableHead>Price/kg</TableHead>
                 <TableHead>Price/Unit</TableHead>
                 <TableHead>Stock</TableHead>
+                <TableHead>Categories</TableHead>
                 <TableHead>Actions</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-              {fruits.map((fruit) => (
-                <TableRow key={fruit.id}>
-                  <TableCell className="font-medium">{fruit.name}</TableCell>
-                  <TableCell>{fruit.unit || 'kg'}</TableCell>
-                  <TableCell>₹{fruit.price_per_kg.toFixed(2)}</TableCell>
-                  <TableCell>
-                    {fruit.price_per_unit && fruit.unit !== 'kg' 
-                      ? `₹${fruit.price_per_unit.toFixed(2)}` 
-                      : '-'
-                    }
-                  </TableCell>
-                  <TableCell>{fruit.available_stock}</TableCell>
-                  <TableCell>
-                    <div className="flex space-x-2">
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => handleEdit(fruit)}
-                      >
-                        <Edit2 className="h-4 w-4" />
-                      </Button>
-                      <AlertDialog>
-                        <AlertDialogTrigger asChild>
-                          <Button variant="outline" size="sm">
-                            <Trash2 className="h-4 w-4 text-destructive" />
-                          </Button>
-                        </AlertDialogTrigger>
-                        <AlertDialogContent>
-                          <AlertDialogHeader>
-                            <AlertDialogTitle>Delete Fruit</AlertDialogTitle>
-                            <AlertDialogDescription>
-                              Are you sure you want to delete "{fruit.name}"? This action cannot be undone.
-                            </AlertDialogDescription>
-                          </AlertDialogHeader>
-                          <AlertDialogFooter>
-                            <AlertDialogCancel>Cancel</AlertDialogCancel>
-                            <AlertDialogAction 
-                              onClick={() => handleDelete(fruit.id)}
-                              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                            >
-                              Delete
-                            </AlertDialogAction>
-                          </AlertDialogFooter>
-                        </AlertDialogContent>
-                      </AlertDialog>
-                    </div>
+              {filteredFruits.length === 0 ? (
+                <TableRow>
+                  <TableCell colSpan={7} className="text-center text-muted-foreground">
+                    {searchTerm ? `No fruits match "${searchTerm}"` : 'No fruits available'}
                   </TableCell>
                 </TableRow>
-              ))}
+              ) : (
+                filteredFruits.map((fruit) => {
+                  const fruitCats = fruitCategories.filter(cat => cat.fruit_id === fruit.id);
+                  return (
+                    <TableRow key={fruit.id}>
+                      <TableCell className="font-medium">{fruit.name}</TableCell>
+                      <TableCell>{fruit.unit || 'kg'}</TableCell>
+                      <TableCell>₹{fruit.price_per_kg.toFixed(2)}</TableCell>
+                      <TableCell>
+                        {fruit.price_per_unit && fruit.unit !== 'kg' 
+                          ? `₹${fruit.price_per_unit.toFixed(2)}` 
+                          : '-'
+                        }
+                      </TableCell>
+                      <TableCell>{fruit.available_stock}</TableCell>
+                      <TableCell>
+                        {fruitCats.length > 0 ? (
+                          <div className="space-y-1">
+                            {fruitCats.map(cat => (
+                              <div key={cat.id} className="text-xs bg-secondary px-2 py-1 rounded">
+                                {cat.name} - ₹{cat.price_per_kg || 0}/kg
+                              </div>
+                            ))}
+                          </div>
+                        ) : (
+                          <span className="text-muted-foreground">-</span>
+                        )}
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex space-x-2">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => handleEdit(fruit)}
+                          >
+                            <Edit2 className="h-4 w-4" />
+                          </Button>
+                          <AlertDialog>
+                            <AlertDialogTrigger asChild>
+                              <Button variant="outline" size="sm">
+                                <Trash2 className="h-4 w-4 text-destructive" />
+                              </Button>
+                            </AlertDialogTrigger>
+                            <AlertDialogContent>
+                              <AlertDialogHeader>
+                                <AlertDialogTitle>Delete Fruit</AlertDialogTitle>
+                                <AlertDialogDescription>
+                                  Are you sure you want to delete "{fruit.name}"? This action cannot be undone.
+                                </AlertDialogDescription>
+                              </AlertDialogHeader>
+                              <AlertDialogFooter>
+                                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                <AlertDialogAction 
+                                  onClick={() => handleDelete(fruit.id)}
+                                  className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                                >
+                                  Delete
+                                </AlertDialogAction>
+                              </AlertDialogFooter>
+                            </AlertDialogContent>
+                          </AlertDialog>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  );
+                })
+              )}
             </TableBody>
           </Table>
         </CardContent>

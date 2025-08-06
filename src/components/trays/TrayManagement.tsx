@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -6,11 +6,12 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { Badge } from '@/components/ui/badge';
 import { useCustomers } from '@/hooks/useCustomers';
 import { useTrayTransactions } from '@/hooks/useTrayTransactions';
 import { EditTrayDialog } from './EditTrayDialog';
-import { Plus, Package, Loader2, RotateCcw, Edit } from 'lucide-react';
+import { Plus, Package, Loader2, RotateCcw, Edit, Search, Trash2 } from 'lucide-react';
 
 export const TrayManagement: React.FC = () => {
   const [open, setOpen] = useState(false);
@@ -22,9 +23,10 @@ export const TrayManagement: React.FC = () => {
   const [paidAmount, setPaidAmount] = useState('');
   const [numberOfTrays, setNumberOfTrays] = useState('1');
   const [notes, setNotes] = useState('');
+  const [searchTerm, setSearchTerm] = useState('');
 
   const { customers } = useCustomers();
-  const { trayTransactions, loading, createTrayTransaction, updateTrayTransaction } = useTrayTransactions();
+  const { trayTransactions, loading, createTrayTransaction, updateTrayTransaction, deleteTrayTransaction } = useTrayTransactions();
 
   const totalAmount = parseFloat(weight || '0') * parseFloat(ratePerKg || '0');
 
@@ -62,6 +64,23 @@ export const TrayManagement: React.FC = () => {
   const handleReturnTray = async (trayId: string) => {
     await updateTrayTransaction(trayId, { status: 'available' });
   };
+
+  const handleDeleteTray = async (trayId: string) => {
+    await deleteTrayTransaction(trayId);
+  };
+
+  // Filter trays based on search term
+  const filteredTrayTransactions = useMemo(() => {
+    if (!searchTerm.trim()) return trayTransactions;
+    
+    const searchLower = searchTerm.toLowerCase();
+    return trayTransactions.filter(tray => 
+      tray.tray_number.toLowerCase().includes(searchLower) ||
+      tray.customers.name.toLowerCase().includes(searchLower) ||
+      tray.customers.phone?.toLowerCase().includes(searchLower) ||
+      tray.notes?.toLowerCase().includes(searchLower)
+    );
+  }, [trayTransactions, searchTerm]);
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -208,19 +227,35 @@ export const TrayManagement: React.FC = () => {
         </Dialog>
       </div>
 
+      {/* Search Bar */}
+      <div className="relative">
+        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
+        <Input
+          placeholder="Search trays by number, customer, or notes..."
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
+          className="pl-10"
+        />
+      </div>
+
       <div className="grid gap-4">
-        {trayTransactions.length === 0 ? (
+        {filteredTrayTransactions.length === 0 ? (
           <Card>
             <CardContent className="flex flex-col items-center justify-center h-64">
               <Package className="h-12 w-12 text-muted-foreground mb-4" />
-              <h3 className="text-lg font-semibold text-muted-foreground">No tray transactions yet</h3>
+              <h3 className="text-lg font-semibold text-muted-foreground">
+                {searchTerm ? 'No trays found' : 'No tray transactions yet'}
+              </h3>
               <p className="text-muted-foreground text-center">
-                Issue your first tray to get started
+                {searchTerm 
+                  ? `No trays match "${searchTerm}". Try a different search term.`
+                  : 'Issue your first tray to get started'
+                }
               </p>
             </CardContent>
           </Card>
         ) : (
-          trayTransactions.map((tray) => (
+          filteredTrayTransactions.map((tray) => (
             <Card key={tray.id}>
               <CardHeader className="pb-3">
                 <div className="flex justify-between items-start">
@@ -254,6 +289,34 @@ export const TrayManagement: React.FC = () => {
                         Return
                       </Button>
                     )}
+                    <AlertDialog>
+                      <AlertDialogTrigger asChild>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="text-destructive hover:text-destructive"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </AlertDialogTrigger>
+                      <AlertDialogContent>
+                        <AlertDialogHeader>
+                          <AlertDialogTitle>Delete Tray Transaction</AlertDialogTitle>
+                          <AlertDialogDescription>
+                            Are you sure you want to delete tray #{tray.tray_number}? This action cannot be undone.
+                          </AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter>
+                          <AlertDialogCancel>Cancel</AlertDialogCancel>
+                          <AlertDialogAction
+                            onClick={() => handleDeleteTray(tray.id)}
+                            className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                          >
+                            Delete
+                          </AlertDialogAction>
+                        </AlertDialogFooter>
+                      </AlertDialogContent>
+                    </AlertDialog>
                   </div>
                 </div>
               </CardHeader>

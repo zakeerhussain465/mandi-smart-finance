@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -11,7 +11,7 @@ import { useTransactions } from '@/hooks/useTransactions';
 import { CustomerManager } from './CustomerManager';
 import { EditCustomerDialog } from './EditCustomerDialog';
 import { CustomerReceiptDialog } from './CustomerReceiptDialog';
-import { Users, Plus, Eye, Trash2, Phone, MapPin, Loader2, ArrowLeft, Receipt, Edit, Send } from 'lucide-react';
+import { Users, Plus, Eye, Trash2, Phone, MapPin, Loader2, ArrowLeft, Receipt, Edit, Send, Search } from 'lucide-react';
 
 export const CustomersList: React.FC = () => {
   const { customers, loading, createCustomer, deleteCustomer, updateCustomer } = useCustomers();
@@ -24,6 +24,7 @@ export const CustomersList: React.FC = () => {
   const [newCustomerName, setNewCustomerName] = useState('');
   const [newCustomerPhone, setNewCustomerPhone] = useState('');
   const [newCustomerAddress, setNewCustomerAddress] = useState('');
+  const [searchTerm, setSearchTerm] = useState('');
 
   // Calculate transaction counts for each customer
   const customerTransactionCounts = transactions.reduce((acc, t) => {
@@ -63,6 +64,18 @@ export const CustomersList: React.FC = () => {
   const customerTransactions = selectedCustomer 
     ? transactions.filter(t => t.customer_id === selectedCustomer.id)
     : [];
+
+  // Filter customers based on search term
+  const filteredCustomers = useMemo(() => {
+    if (!searchTerm.trim()) return customers;
+    
+    const searchLower = searchTerm.toLowerCase();
+    return customers.filter(customer => 
+      customer.name.toLowerCase().includes(searchLower) ||
+      customer.phone?.toLowerCase().includes(searchLower) ||
+      customer.address?.toLowerCase().includes(searchLower)
+    );
+  }, [customers, searchTerm]);
 
 
   const getStatusColor = (status: string) => {
@@ -295,14 +308,30 @@ export const CustomersList: React.FC = () => {
         </div>
       </div>
 
+      {/* Search Bar */}
+      <div className="relative">
+        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
+        <Input
+          placeholder="Search customers by name, phone, or address..."
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
+          className="pl-10"
+        />
+      </div>
+
       <div className="grid gap-4">
-        {customers.length === 0 ? (
+        {filteredCustomers.length === 0 ? (
           <Card>
             <CardContent className="flex flex-col items-center justify-center h-64">
               <Users className="h-12 w-12 text-muted-foreground mb-4" />
-              <h3 className="text-lg font-semibold text-muted-foreground">No customers selected</h3>
+              <h3 className="text-lg font-semibold text-muted-foreground">
+                {searchTerm ? 'No customers found' : 'No customers selected'}
+              </h3>
               <p className="text-muted-foreground text-center mb-4">
-                No customers are currently shown in this section. Use "Manage Visibility" to select which customers to display.
+                {searchTerm 
+                  ? `No customers match "${searchTerm}". Try a different search term.`
+                  : 'No customers are currently shown in this section. Use "Manage Visibility" to select which customers to display.'
+                }
               </p>
               <Button 
                 variant="outline" 
@@ -315,7 +344,7 @@ export const CustomersList: React.FC = () => {
             </CardContent>
           </Card>
         ) : (
-          customers.map((customer) => (
+          filteredCustomers.map((customer) => (
             <Card key={customer.id} className="cursor-pointer hover:shadow-md transition-shadow">
               <CardHeader>
                 <div className="flex justify-between items-start">

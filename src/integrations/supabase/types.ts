@@ -50,6 +50,50 @@ export type Database = {
         }
         Relationships: []
       }
+      fruit_categories: {
+        Row: {
+          available_stock: number | null
+          created_at: string
+          fruit_id: string
+          id: string
+          name: string
+          price_per_kg: number | null
+          price_per_unit: number | null
+          unit: string | null
+          updated_at: string
+        }
+        Insert: {
+          available_stock?: number | null
+          created_at?: string
+          fruit_id: string
+          id?: string
+          name: string
+          price_per_kg?: number | null
+          price_per_unit?: number | null
+          unit?: string | null
+          updated_at?: string
+        }
+        Update: {
+          available_stock?: number | null
+          created_at?: string
+          fruit_id?: string
+          id?: string
+          name?: string
+          price_per_kg?: number | null
+          price_per_unit?: number | null
+          unit?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fruit_categories_fruit_id_fkey"
+            columns: ["fruit_id"]
+            isOneToOne: false
+            referencedRelation: "fruits"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       fruits: {
         Row: {
           available_stock: number | null
@@ -114,11 +158,13 @@ export type Database = {
         Row: {
           created_at: string | null
           customer_id: string
+          fruit_category_id: string | null
           fruit_id: string
           id: string
           notes: string | null
           paid_amount: number | null
           price_per_kg: number
+          pricing_mode: string | null
           quantity: number
           status: Database["public"]["Enums"]["transaction_status"] | null
           total_amount: number
@@ -128,11 +174,13 @@ export type Database = {
         Insert: {
           created_at?: string | null
           customer_id: string
+          fruit_category_id?: string | null
           fruit_id: string
           id?: string
           notes?: string | null
           paid_amount?: number | null
           price_per_kg: number
+          pricing_mode?: string | null
           quantity: number
           status?: Database["public"]["Enums"]["transaction_status"] | null
           total_amount: number
@@ -142,11 +190,13 @@ export type Database = {
         Update: {
           created_at?: string | null
           customer_id?: string
+          fruit_category_id?: string | null
           fruit_id?: string
           id?: string
           notes?: string | null
           paid_amount?: number | null
           price_per_kg?: number
+          pricing_mode?: string | null
           quantity?: number
           status?: Database["public"]["Enums"]["transaction_status"] | null
           total_amount?: number
@@ -166,6 +216,13 @@ export type Database = {
             columns: ["customer_id"]
             isOneToOne: false
             referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "transactions_fruit_category_id_fkey"
+            columns: ["fruit_category_id"]
+            isOneToOne: false
+            referencedRelation: "fruit_categories"
             referencedColumns: ["id"]
           },
           {
