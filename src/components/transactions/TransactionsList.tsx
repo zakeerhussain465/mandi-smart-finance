@@ -5,12 +5,15 @@ import { Button } from '@/components/ui/button';
 import { useTransactions } from '@/hooks/useTransactions';
 import { TransactionForm } from './TransactionForm';
 import { PaymentUpdateDialog } from './PaymentUpdateDialog';
-import { Loader2, Receipt, CreditCard } from 'lucide-react';
+import { Loader2, Receipt, CreditCard, FileText } from 'lucide-react';
+import { ReceiptDialog } from './ReceiptDialog';
 
 export const TransactionsList: React.FC = () => {
   const { transactions, loading } = useTransactions();
   const [selectedTransaction, setSelectedTransaction] = useState<any>(null);
   const [paymentDialogOpen, setPaymentDialogOpen] = useState(false);
+  const [receiptDialogOpen, setReceiptDialogOpen] = useState(false);
+  const [receiptTransaction, setReceiptTransaction] = useState<any>(null);
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -96,19 +99,32 @@ export const TransactionsList: React.FC = () => {
                       }`}>
                         ₹{(transaction.total_amount - transaction.paid_amount).toFixed(2)}
                       </p>
-                      {transaction.total_amount - transaction.paid_amount > 0 && (
+                      <div className="flex space-x-2">
                         <Button
                           size="sm"
                           variant="outline"
                           onClick={() => {
-                            setSelectedTransaction(transaction);
-                            setPaymentDialogOpen(true);
+                            setReceiptTransaction(transaction);
+                            setReceiptDialogOpen(true);
                           }}
                         >
-                          <CreditCard className="h-4 w-4 mr-1" />
-                          Pay
+                          <FileText className="h-4 w-4 mr-1" />
+                          Receipt
                         </Button>
-                      )}
+                        {transaction.total_amount - transaction.paid_amount > 0 && (
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => {
+                              setSelectedTransaction(transaction);
+                              setPaymentDialogOpen(true);
+                            }}
+                          >
+                            <CreditCard className="h-4 w-4 mr-1" />
+                            Pay
+                          </Button>
+                        )}
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -131,6 +147,17 @@ export const TransactionsList: React.FC = () => {
           onOpenChange={(open) => {
             setPaymentDialogOpen(open);
             if (!open) setSelectedTransaction(null);
+          }}
+        />
+      )}
+
+      {receiptTransaction && (
+        <ReceiptDialog
+          transaction={receiptTransaction}
+          open={receiptDialogOpen}
+          onOpenChange={(open) => {
+            setReceiptDialogOpen(open);
+            if (!open) setReceiptTransaction(null);
           }}
         />
       )}

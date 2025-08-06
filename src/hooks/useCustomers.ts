@@ -168,10 +168,6 @@ export const useCustomers = () => {
   };
 
   const deleteCustomer = async (id: string) => {
-    // Optimistic update - remove immediately
-    const originalCustomer = customers.find(c => c.id === id);
-    setCustomers(prev => prev.filter(c => c.id !== id));
-
     try {
       const { error } = await supabase
         .from('customers')
@@ -180,6 +176,9 @@ export const useCustomers = () => {
 
       if (error) throw error;
       
+      // Remove from state after successful deletion
+      setCustomers(prev => prev.filter(c => c.id !== id));
+      
       toast({
         title: "Success",
         description: "Customer deleted successfully"
@@ -187,10 +186,6 @@ export const useCustomers = () => {
       
       return true;
     } catch (error: any) {
-      // Restore customer on error
-      if (originalCustomer) {
-        setCustomers(prev => [...prev, originalCustomer].sort((a, b) => a.name.localeCompare(b.name)));
-      }
       toast({
         title: "Error",
         description: error.message || "Failed to delete customer",
