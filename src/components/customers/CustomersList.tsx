@@ -15,7 +15,7 @@ import { Users, Plus, Eye, Trash2, Phone, MapPin, Loader2, ArrowLeft, Receipt, E
 
 export const CustomersList: React.FC = () => {
   const { customers, loading, createCustomer, deleteCustomer, updateCustomer } = useCustomers();
-  const { transactions } = useTransactions();
+  const { transactions, deleteTransaction } = useTransactions();
   const [selectedCustomer, setSelectedCustomer] = useState<any>(null);
   const [showNewCustomerDialog, setShowNewCustomerDialog] = useState(false);
   const [showCustomerManager, setShowCustomerManager] = useState(false);
@@ -57,6 +57,12 @@ export const CustomersList: React.FC = () => {
     const success = await deleteCustomer(customerId);
     if (success && selectedCustomer?.id === customerId) {
       setSelectedCustomer(null);
+    }
+  };
+
+  const handleDeleteTransaction = async (transactionId: string) => {
+    if (deleteTransaction) {
+      await deleteTransaction(transactionId);
     }
   };
 
@@ -214,17 +220,46 @@ export const CustomersList: React.FC = () => {
                         ₹{(transaction.total_amount - transaction.paid_amount).toFixed(2)}
                       </p>
                     </div>
-                    <div className="flex space-x-2">
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => setReceiptTransaction(transaction)}
-                        className="h-8"
-                      >
-                        <Send className="h-3 w-3 mr-1" />
-                        Receipt
-                      </Button>
-                    </div>
+                  </div>
+                  <div className="flex space-x-2 mt-4">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setReceiptTransaction(transaction)}
+                      className="h-8"
+                    >
+                      <Send className="h-3 w-3 mr-1" />
+                      Receipt
+                    </Button>
+                    <AlertDialog>
+                      <AlertDialogTrigger asChild>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="h-8 text-destructive hover:text-destructive"
+                        >
+                          <Trash2 className="h-3 w-3 mr-1" />
+                          Delete
+                        </Button>
+                      </AlertDialogTrigger>
+                      <AlertDialogContent>
+                        <AlertDialogHeader>
+                          <AlertDialogTitle>Delete Transaction</AlertDialogTitle>
+                          <AlertDialogDescription>
+                            Are you sure you want to delete this transaction? This action cannot be undone.
+                          </AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter>
+                          <AlertDialogCancel>Cancel</AlertDialogCancel>
+                          <AlertDialogAction 
+                            onClick={() => handleDeleteTransaction(transaction.id)}
+                            className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                          >
+                            Delete
+                          </AlertDialogAction>
+                        </AlertDialogFooter>
+                      </AlertDialogContent>
+                    </AlertDialog>
                   </div>
                   {transaction.notes && (
                     <div className="mt-4 pt-4 border-t">

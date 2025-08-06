@@ -242,11 +242,40 @@ export const useTransactions = () => {
     fetchTransactions();
   }, [user]);
 
+  const deleteTransaction = async (id: string) => {
+    try {
+      const { error } = await supabase
+        .from('transactions')
+        .delete()
+        .eq('id', id);
+
+      if (error) throw error;
+      
+      // Remove from state after successful deletion
+      setTransactions(prev => prev.filter(t => t.id !== id));
+      
+      toast({
+        title: "Success",
+        description: "Transaction deleted successfully"
+      });
+      
+      return true;
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to delete transaction",
+        variant: "destructive"
+      });
+      return false;
+    }
+  };
+
   return {
     transactions,
     loading,
     createTransaction,
     updateTransaction,
+    deleteTransaction,
     refetch: fetchTransactions
   };
 };
