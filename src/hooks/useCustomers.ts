@@ -52,20 +52,30 @@ export const useCustomers = () => {
     if (!user) return;
 
     const channel = supabase
-      .channel('customer-changes')
+      .channel('customer-realtime-updates')
       .on(
         'postgres_changes',
         {
-          event: 'UPDATE',
+          event: '*',
           schema: 'public',
           table: 'customers',
           filter: `user_id=eq.${user.id}`
         },
         (payload) => {
           console.log('Real-time customer update received:', payload);
-          setCustomers(prev => prev.map(c => 
-            c.id === payload.new.id ? payload.new as Customer : c
-          ));
+          
+          if (payload.eventType === 'UPDATE') {
+            setCustomers(prev => prev.map(c => 
+              c.id === payload.new.id ? payload.new as Customer : c
+            ));
+          } else if (payload.eventType === 'INSERT') {
+            const newCustomer = payload.new as Customer;
+            if (newCustomer.show_in_list) {
+              setCustomers(prev => [...prev, newCustomer]);
+            }
+          } else if (payload.eventType === 'DELETE') {
+            setCustomers(prev => prev.filter(c => c.id !== payload.old.id));
+          }
         }
       )
       .subscribe();
