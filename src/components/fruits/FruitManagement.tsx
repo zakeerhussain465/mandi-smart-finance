@@ -89,18 +89,8 @@ export const FruitManagement: React.FC = () => {
     setUnit(fruit.unit || 'kg');
     setAvailableStock(fruit.available_stock.toString());
     
-    // Load existing categories for this fruit
-    const existingCategories = fruitCategories
-      .filter(cat => cat.fruit_id === fruit.id)
-      .map(cat => ({
-        name: cat.name,
-        price_per_kg: cat.price_per_kg?.toString() || '',
-        price_per_unit: cat.price_per_unit?.toString() || '',
-        unit: cat.unit,
-        available_stock: cat.available_stock?.toString() || ''
-      }));
-    
-    setCategories(existingCategories);
+    // Don't load existing categories - start fresh to avoid duplication
+    setCategories([]);
     setOpen(true);
   };
 
@@ -281,17 +271,18 @@ export const FruitManagement: React.FC = () => {
                           </SelectContent>
                         </Select>
                       </div>
-                      <div className="space-y-2">
-                        <Label>Price per kg (₹)</Label>
-                        <Input
-                          type="number"
-                          step="0.01"
-                          value={category.price_per_kg}
-                          onChange={(e) => updateCategoryField(index, 'price_per_kg', e.target.value)}
-                          placeholder="0.00"
-                        />
-                      </div>
-                      {category.unit !== 'kg' && (
+                      {category.unit === 'kg' ? (
+                        <div className="space-y-2">
+                          <Label>Price per kg (₹)</Label>
+                          <Input
+                            type="number"
+                            step="0.01"
+                            value={category.price_per_kg}
+                            onChange={(e) => updateCategoryField(index, 'price_per_kg', e.target.value)}
+                            placeholder="0.00"
+                          />
+                        </div>
+                      ) : (
                         <div className="space-y-2">
                           <Label>Price per {category.unit} (₹)</Label>
                           <Input

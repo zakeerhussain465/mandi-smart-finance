@@ -139,12 +139,12 @@ export const ReceiptDialog: React.FC<ReceiptDialogProps> = ({
                 <div className="flex justify-between">
                   <span className="font-medium">Product:</span>
                   <span>
-                    {transaction.fruits.name}
-                     {transaction.fruit_categories && (
-                       <span className="text-sm text-accent font-medium block">
-                         Category: {transaction.fruit_categories.name}
-                       </span>
-                     )}
+                     {transaction.fruits.name}
+                      {transaction.fruit_categories && (
+                        <span className="text-sm text-secondary font-medium block">
+                          Category: {transaction.fruit_categories.name}
+                        </span>
+                      )}
                   </span>
                 </div>
                 <div className="flex justify-between">

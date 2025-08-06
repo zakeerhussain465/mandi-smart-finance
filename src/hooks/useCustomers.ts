@@ -65,9 +65,13 @@ export const useCustomers = () => {
           console.log('Real-time customer update received:', payload);
           
           if (payload.eventType === 'UPDATE') {
-            setCustomers(prev => prev.map(c => 
-              c.id === payload.new.id ? payload.new as Customer : c
-            ));
+            const updatedCustomer = payload.new as Customer;
+            // Only update if customer is in our current list (show_in_list = true)
+            if (updatedCustomer.show_in_list) {
+              setCustomers(prev => prev.map(c => 
+                c.id === updatedCustomer.id ? updatedCustomer : c
+              ));
+            }
           } else if (payload.eventType === 'INSERT') {
             const newCustomer = payload.new as Customer;
             if (newCustomer.show_in_list) {
