@@ -10,7 +10,8 @@ import { useCustomers } from '@/hooks/useCustomers';
 import { useTransactions } from '@/hooks/useTransactions';
 import { CustomerManager } from './CustomerManager';
 import { EditCustomerDialog } from './EditCustomerDialog';
-import { Users, Plus, Eye, Trash2, Phone, MapPin, Loader2, ArrowLeft, Receipt, Edit } from 'lucide-react';
+import { CustomerReceiptDialog } from './CustomerReceiptDialog';
+import { Users, Plus, Eye, Trash2, Phone, MapPin, Loader2, ArrowLeft, Receipt, Edit, Send } from 'lucide-react';
 
 export const CustomersList: React.FC = () => {
   const { customers, loading, createCustomer, deleteCustomer, updateCustomer } = useCustomers();
@@ -19,6 +20,7 @@ export const CustomersList: React.FC = () => {
   const [showNewCustomerDialog, setShowNewCustomerDialog] = useState(false);
   const [showCustomerManager, setShowCustomerManager] = useState(false);
   const [editingCustomer, setEditingCustomer] = useState<any>(null);
+  const [receiptTransaction, setReceiptTransaction] = useState<any>(null);
   const [newCustomerName, setNewCustomerName] = useState('');
   const [newCustomerPhone, setNewCustomerPhone] = useState('');
   const [newCustomerAddress, setNewCustomerAddress] = useState('');
@@ -198,6 +200,17 @@ export const CustomersList: React.FC = () => {
                       }`}>
                         ₹{(transaction.total_amount - transaction.paid_amount).toFixed(2)}
                       </p>
+                    </div>
+                    <div className="flex space-x-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setReceiptTransaction(transaction)}
+                        className="h-8"
+                      >
+                        <Send className="h-3 w-3 mr-1" />
+                        Receipt
+                      </Button>
                     </div>
                   </div>
                   {transaction.notes && (
@@ -404,6 +417,16 @@ export const CustomersList: React.FC = () => {
           open={!!editingCustomer}
           onOpenChange={(open) => {
             if (!open) setEditingCustomer(null);
+          }}
+        />
+      )}
+
+      {receiptTransaction && (
+        <CustomerReceiptDialog
+          transaction={receiptTransaction}
+          open={!!receiptTransaction}
+          onOpenChange={(open) => {
+            if (!open) setReceiptTransaction(null);
           }}
         />
       )}

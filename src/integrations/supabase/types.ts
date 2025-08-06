@@ -155,6 +155,13 @@ export type Database = {
         }
         Relationships: [
           {
+            foreignKeyName: "fk_transactions_customer"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "transactions_customer_id_fkey"
             columns: ["customer_id"]
             isOneToOne: false
@@ -217,6 +224,13 @@ export type Database = {
           weight?: number
         }
         Relationships: [
+          {
+            foreignKeyName: "fk_tray_transactions_customer"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "tray_transactions_customer_id_fkey"
             columns: ["customer_id"]
