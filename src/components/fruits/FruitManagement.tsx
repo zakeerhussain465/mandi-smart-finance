@@ -112,7 +112,21 @@ export const FruitManagement: React.FC = () => {
     setCategories([...categories, { name: '', price_per_kg: '', price_per_unit: '', unit: 'kg', available_stock: '' }]);
   };
 
-  const removeCategory = (index: number) => {
+  const removeCategory = async (index: number) => {
+    const category = categories[index];
+    
+    // If this is an existing category (has an ID from the database), delete it
+    if (editingFruit) {
+      const existingCategory = fruitCategories.find(cat => 
+        cat.fruit_id === editingFruit.id && cat.name === category.name
+      );
+      
+      if (existingCategory) {
+        await deleteCategory(existingCategory.id);
+      }
+    }
+    
+    // Remove from local state
     setCategories(categories.filter((_, i) => i !== index));
   };
 

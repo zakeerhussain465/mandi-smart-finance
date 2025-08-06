@@ -113,7 +113,7 @@ export const Dashboard: React.FC = () => {
                     <div>
                       <p className="font-medium">{transaction.customers.name}</p>
                       <p className="text-sm text-muted-foreground">
-                        {transaction.fruits.name} • {transaction.quantity}kg
+                        {transaction.fruits.name} • {transaction.quantity}{(transaction as any).pricing_mode === 'per_box' ? ' boxes' : 'kg'}
                       </p>
                     </div>
                     <div className="text-right">
