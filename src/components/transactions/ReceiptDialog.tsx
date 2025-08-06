@@ -59,9 +59,16 @@ export const ReceiptDialog: React.FC<ReceiptDialogProps> = ({
 
       if (error) throw error;
 
-      // Open WhatsApp with the receipt
+      // Open WhatsApp with the receipt (reuse tab if possible)
       if (data.whatsappUrl) {
-        window.open(data.whatsappUrl, '_blank');
+        // Try to reuse existing WhatsApp tab
+        const whatsappWindow = window.open('', 'whatsapp_tab');
+        if (whatsappWindow) {
+          whatsappWindow.location.href = data.whatsappUrl;
+          whatsappWindow.focus();
+        } else {
+          window.open(data.whatsappUrl, 'whatsapp_tab');
+        }
         
         toast({
           title: "Success",
