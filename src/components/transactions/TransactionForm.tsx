@@ -258,7 +258,7 @@ export const TransactionForm: React.FC = () => {
                     <SelectValue placeholder="Select category (optional)" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">No specific category</SelectItem>
+                    <SelectItem value="none">No specific category</SelectItem>
                     {fruitCats.map((category) => (
                       <SelectItem key={category.id} value={category.id}>
                         {category.name} - ₹{category.price_per_kg || category.price_per_unit}/{category.unit}
