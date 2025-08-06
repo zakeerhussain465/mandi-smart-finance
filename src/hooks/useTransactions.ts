@@ -45,7 +45,7 @@ export const useTransactions = () => {
         .from('transactions')
         .select(`
           *,
-          customers (name, phone),
+          customers!fk_transactions_customer (name, phone),
           fruits (name)
         `)
         .order('created_at', { ascending: false });
@@ -92,7 +92,7 @@ export const useTransactions = () => {
         }])
         .select(`
           *,
-          customers (name, phone),
+          customers!fk_transactions_customer (name, phone),
           fruits (name)
         `)
         .single();
@@ -160,7 +160,7 @@ export const useTransactions = () => {
         .eq('id', id)
         .select(`
           *,
-          customers (name, phone),
+          customers!fk_transactions_customer (name, phone),
           fruits (name)
         `)
         .single();

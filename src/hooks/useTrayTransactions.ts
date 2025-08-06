@@ -44,7 +44,7 @@ export const useTrayTransactions = () => {
         .from('tray_transactions')
         .select(`
           *,
-          customers (name, phone)
+          customers!fk_tray_transactions_customer (name, phone)
         `)
         .order('created_at', { ascending: false });
 
@@ -87,7 +87,7 @@ export const useTrayTransactions = () => {
         }])
         .select(`
           *,
-          customers (name, phone)
+          customers!fk_tray_transactions_customer (name, phone)
         `)
         .single();
 
@@ -132,7 +132,7 @@ export const useTrayTransactions = () => {
         .eq('id', id)
         .select(`
           *,
-          customers (name, phone)
+          customers!fk_tray_transactions_customer (name, phone)
         `)
         .single();
 
