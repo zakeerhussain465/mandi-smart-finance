@@ -181,35 +181,25 @@ export const useCustomers = () => {
     console.log('Attempting to delete customer:', id);
     
     try {
-      // First, check if customer has transactions or tray transactions
-      const { data: transactions } = await supabase
+      // Delete all transactions and tray transactions for this customer first
+      const { error: transactionsError } = await supabase
         .from('transactions')
-        .select('id')
-        .eq('customer_id', id)
-        .limit(1);
-      
-      const { data: trayTransactions } = await supabase
-        .from('tray_transactions')
-        .select('id')
-        .eq('customer_id', id)
-        .limit(1);
+        .delete()
+        .eq('customer_id', id);
 
-      if (transactions && transactions.length > 0) {
-        toast({
-          title: "Cannot Delete Customer",
-          description: "This customer has existing transactions. Please remove all transactions first.",
-          variant: "destructive"
-        });
-        return false;
+      if (transactionsError) {
+        console.error('Error deleting transactions:', transactionsError);
+        throw transactionsError;
       }
 
-      if (trayTransactions && trayTransactions.length > 0) {
-        toast({
-          title: "Cannot Delete Customer",
-          description: "This customer has existing tray transactions. Please remove all tray transactions first.",
-          variant: "destructive"
-        });
-        return false;
+      const { error: trayTransactionsError } = await supabase
+        .from('tray_transactions')
+        .delete()
+        .eq('customer_id', id);
+
+      if (trayTransactionsError) {
+        console.error('Error deleting tray transactions:', trayTransactionsError);
+        throw trayTransactionsError;
       }
       
       console.log('Deleting customer...');
@@ -230,7 +220,7 @@ export const useCustomers = () => {
       
       toast({
         title: "Success",
-        description: "Customer deleted successfully"
+        description: "Customer and all related transactions deleted successfully"
       });
       
       return true;
