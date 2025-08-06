@@ -9,7 +9,8 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { useCustomers } from '@/hooks/useCustomers';
 import { useTransactions } from '@/hooks/useTransactions';
 import { CustomerManager } from './CustomerManager';
-import { Users, Plus, Eye, Trash2, Phone, MapPin, Loader2, ArrowLeft, Receipt } from 'lucide-react';
+import { EditCustomerDialog } from './EditCustomerDialog';
+import { Users, Plus, Eye, Trash2, Phone, MapPin, Loader2, ArrowLeft, Receipt, Edit } from 'lucide-react';
 
 export const CustomersList: React.FC = () => {
   const { customers, loading, createCustomer, deleteCustomer, updateCustomer } = useCustomers();
@@ -17,6 +18,7 @@ export const CustomersList: React.FC = () => {
   const [selectedCustomer, setSelectedCustomer] = useState<any>(null);
   const [showNewCustomerDialog, setShowNewCustomerDialog] = useState(false);
   const [showCustomerManager, setShowCustomerManager] = useState(false);
+  const [editingCustomer, setEditingCustomer] = useState<any>(null);
   const [newCustomerName, setNewCustomerName] = useState('');
   const [newCustomerPhone, setNewCustomerPhone] = useState('');
   const [newCustomerAddress, setNewCustomerAddress] = useState('');
@@ -341,6 +343,17 @@ export const CustomersList: React.FC = () => {
                         size="sm"
                         onClick={(e) => {
                           e.stopPropagation();
+                          setEditingCustomer(customer);
+                        }}
+                      >
+                        <Edit className="h-4 w-4 mr-1" />
+                        Edit
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={(e) => {
+                          e.stopPropagation();
                           setSelectedCustomer(customer);
                         }}
                       >
@@ -384,6 +397,16 @@ export const CustomersList: React.FC = () => {
           ))
         )}
       </div>
+
+      {editingCustomer && (
+        <EditCustomerDialog
+          customer={editingCustomer}
+          open={!!editingCustomer}
+          onOpenChange={(open) => {
+            if (!open) setEditingCustomer(null);
+          }}
+        />
+      )}
     </div>
   );
 };

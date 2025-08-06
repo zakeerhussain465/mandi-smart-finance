@@ -59,21 +59,18 @@ export const ReceiptDialog: React.FC<ReceiptDialogProps> = ({
 
       if (error) throw error;
 
-      // If PDF data is returned, offer download
-      if (data.pdfData) {
-        const link = document.createElement('a');
-        link.href = data.downloadUrl;
-        link.download = `receipt-${transaction.id.slice(-8)}.pdf`;
-        link.click();
+      // Open WhatsApp with the receipt
+      if (data.whatsappUrl) {
+        window.open(data.whatsappUrl, '_blank');
         
         toast({
           title: "Success",
-          description: `Receipt PDF downloaded and ready for sharing to ${phoneNumber}`,
+          description: `WhatsApp opened with receipt for ${phoneNumber}`,
         });
       } else {
         toast({
           title: "Success",
-          description: `Receipt sent to ${phoneNumber}`,
+          description: `Receipt prepared for ${phoneNumber}`,
         });
       }
       
@@ -200,7 +197,7 @@ export const ReceiptDialog: React.FC<ReceiptDialogProps> = ({
                 </Button>
               </div>
               <p className="text-xs text-muted-foreground">
-                Receipt will be sent as PDF via messaging service
+                Opens WhatsApp with formatted receipt text
               </p>
             </div>
           </div>

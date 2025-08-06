@@ -9,10 +9,12 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Badge } from '@/components/ui/badge';
 import { useCustomers } from '@/hooks/useCustomers';
 import { useTrayTransactions } from '@/hooks/useTrayTransactions';
-import { Plus, Package, Loader2, RotateCcw } from 'lucide-react';
+import { EditTrayDialog } from './EditTrayDialog';
+import { Plus, Package, Loader2, RotateCcw, Edit } from 'lucide-react';
 
 export const TrayManagement: React.FC = () => {
   const [open, setOpen] = useState(false);
+  const [editingTray, setEditingTray] = useState<any>(null);
   const [customerId, setCustomerId] = useState('');
   const [trayNumber, setTrayNumber] = useState('');
   const [weight, setWeight] = useState('');
@@ -234,6 +236,14 @@ export const TrayManagement: React.FC = () => {
                     <Badge className={getStatusColor(tray.status)}>
                       {tray.status.replace('_', ' ')}
                     </Badge>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => setEditingTray(tray)}
+                    >
+                      <Edit className="h-4 w-4 mr-1" />
+                      Edit
+                    </Button>
                     {tray.status === 'in_use' && (
                       <Button
                         size="sm"
@@ -289,6 +299,16 @@ export const TrayManagement: React.FC = () => {
           ))
         )}
       </div>
+
+      {editingTray && (
+        <EditTrayDialog
+          trayTransaction={editingTray}
+          open={!!editingTray}
+          onOpenChange={(open) => {
+            if (!open) setEditingTray(null);
+          }}
+        />
+      )}
     </div>
   );
 };

@@ -168,46 +168,59 @@ export const useCustomers = () => {
   };
 
   const deleteCustomer = async (id: string) => {
+    console.log('Attempting to delete customer:', id);
+    
     try {
-      // Check if customer has any related transactions
-      const { data: relatedTransactions } = await supabase
+      // First delete all related data
+      console.log('Checking for related transactions...');
+      
+      // Delete related transactions first
+      const { error: transactionError } = await supabase
         .from('transactions')
-        .select('id')
-        .eq('customer_id', id)
-        .limit(1);
-
-      const { data: relatedTrayTransactions } = await supabase
-        .from('tray_transactions')
-        .select('id')
-        .eq('customer_id', id)
-        .limit(1);
-
-      if (relatedTransactions?.length || relatedTrayTransactions?.length) {
-        toast({
-          title: "Cannot Delete Customer",
-          description: "This customer has transaction history. Delete their transactions first.",
-          variant: "destructive"
-        });
-        return false;
+        .delete()
+        .eq('customer_id', id);
+      
+      if (transactionError) {
+        console.error('Error deleting transactions:', transactionError);
+        throw transactionError;
       }
 
+      // Delete related tray transactions
+      const { error: trayError } = await supabase
+        .from('tray_transactions')
+        .delete()
+        .eq('customer_id', id);
+      
+      if (trayError) {
+        console.error('Error deleting tray transactions:', trayError);
+        throw trayError;
+      }
+
+      // Now delete the customer
+      console.log('Deleting customer...');
       const { error } = await supabase
         .from('customers')
         .delete()
         .eq('id', id);
 
-      if (error) throw error;
+      if (error) {
+        console.error('Error deleting customer:', error);
+        throw error;
+      }
+      
+      console.log('Customer deleted successfully');
       
       // Remove from state after successful deletion
       setCustomers(prev => prev.filter(c => c.id !== id));
       
       toast({
         title: "Success",
-        description: "Customer deleted successfully"
+        description: "Customer and all related data deleted successfully"
       });
       
       return true;
     } catch (error: any) {
+      console.error('Delete customer failed:', error);
       toast({
         title: "Error",
         description: error.message || "Failed to delete customer",
