@@ -7,6 +7,7 @@ import { Separator } from '@/components/ui/separator';
 import { Card, CardContent } from '@/components/ui/card';
 import { Send, Phone } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
+import { supabase } from '@/integrations/supabase/client';
 
 interface Transaction {
   id: string;
@@ -49,16 +50,25 @@ export const ReceiptDialog: React.FC<ReceiptDialogProps> = ({
 
     setSending(true);
     try {
-      // TODO: Implement PDF generation and WhatsApp sending
-      // This would involve creating an edge function
+      const { data, error } = await supabase.functions.invoke('send-receipt', {
+        body: {
+          transaction,
+          phoneNumber
+        }
+      });
+
+      if (error) throw error;
+
       toast({
         title: "Success",
         description: `Receipt sent to ${phoneNumber}`,
       });
-    } catch (error) {
+      
+      onOpenChange(false);
+    } catch (error: any) {
       toast({
         title: "Error", 
-        description: "Failed to send receipt",
+        description: error.message || "Failed to send receipt",
         variant: "destructive"
       });
     } finally {
@@ -177,7 +187,7 @@ export const ReceiptDialog: React.FC<ReceiptDialogProps> = ({
                 </Button>
               </div>
               <p className="text-xs text-muted-foreground">
-                Receipt will be sent as PDF via WhatsApp
+                Receipt will be sent as PDF via messaging service
               </p>
             </div>
           </div>
