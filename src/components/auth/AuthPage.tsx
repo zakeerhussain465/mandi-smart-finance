@@ -6,6 +6,8 @@ import { Label } from '@/components/ui/label';
 import { useAuth } from './AuthProvider';
 import { toast } from '@/hooks/use-toast';
 
+import { ForgotPasswordDialog } from './ForgotPasswordDialog';
+
 export const AuthPage: React.FC = () => {
   const [isSignUp, setIsSignUp] = useState(false);
   const [email, setEmail] = useState('');
@@ -13,6 +15,7 @@ export const AuthPage: React.FC = () => {
   const [fullName, setFullName] = useState('');
   const [phone, setPhone] = useState('');
   const [loading, setLoading] = useState(false);
+  const [showForgotPassword, setShowForgotPassword] = useState(false);
   const { signIn, signUp } = useAuth();
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -102,7 +105,19 @@ export const AuthPage: React.FC = () => {
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="password">Password</Label>
+              <div className="flex items-center justify-between">
+                <Label htmlFor="password">Password</Label>
+                {!isSignUp && (
+                  <Button
+                    type="button"
+                    variant="link"
+                    className="text-xs p-0 h-auto"
+                    onClick={() => setShowForgotPassword(true)}
+                  >
+                    Forgot password?
+                  </Button>
+                )}
+              </div>
               <Input
                 id="password"
                 type="password"
@@ -126,6 +141,10 @@ export const AuthPage: React.FC = () => {
           </div>
         </CardContent>
       </Card>
+      <ForgotPasswordDialog 
+        open={showForgotPassword} 
+        onOpenChange={setShowForgotPassword} 
+      />
     </div>
   );
 };
