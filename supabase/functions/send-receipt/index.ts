@@ -1,5 +1,6 @@
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -12,10 +13,65 @@ serve(async (req) => {
   }
 
   try {
-    const { transaction, phoneNumber } = await req.json();
+    // Get auth token
+    const authHeader = req.headers.get('Authorization');
+    if (!authHeader) {
+      return new Response(
+        JSON.stringify({ error: 'Unauthorized' }),
+        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
 
-    if (!transaction || !phoneNumber) {
-      throw new Error('Transaction data and phone number are required');
+    // Create authenticated Supabase client
+    const supabase = createClient(
+      Deno.env.get('SUPABASE_URL')!,
+      Deno.env.get('SUPABASE_ANON_KEY')!,
+      { global: { headers: { Authorization: authHeader } } }
+    );
+
+    const { transactionId } = await req.json();
+
+    if (!transactionId) {
+      return new Response(
+        JSON.stringify({ error: 'Transaction ID is required' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    // Fetch transaction from database (RLS will verify ownership)
+    const { data: transaction, error } = await supabase
+      .from('transactions')
+      .select(`
+        *,
+        customers(name, phone, address),
+        fruits(name),
+        fruit_categories(name)
+      `)
+      .eq('id', transactionId)
+      .single();
+
+    if (error) {
+      console.error('Error fetching transaction:', error);
+      return new Response(
+        JSON.stringify({ error: 'Transaction not found or unauthorized' }),
+        { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    if (!transaction) {
+      return new Response(
+        JSON.stringify({ error: 'Transaction not found' }),
+        { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    // Use phone from database, not client
+    const phoneNumber = transaction.customers?.phone;
+    if (!phoneNumber) {
+      return new Response(
+        JSON.stringify({ error: 'Customer has no phone number' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
     }
 
     const balance = transaction.total_amount - transaction.paid_amount;
@@ -23,7 +79,7 @@ serve(async (req) => {
     // Determine unit and pricing based on pricing_mode
     const isPerBox = transaction.pricing_mode === 'per_box';
     const unit = isPerBox ? 'box' : 'kg';
-    const rate = isPerBox ? transaction.price_per_unit : transaction.price_per_kg;
+    const rate = isPerBox ? transaction.price_per_kg : transaction.price_per_kg;
     const categoryText = transaction.fruit_categories ? ` (${transaction.fruit_categories.name})` : '';
     
     // Create a simple receipt text for WhatsApp
@@ -57,13 +113,6 @@ ${transaction.notes ? `\n📝 *Notes:* ${transaction.notes}\n` : ''}
 Visit us again soon! 🌟
 ━━━━━━━━━━━━━━━━━━━━━`;
 
-    // Use WhatsApp API to send message
-    // For demo purposes, we'll use a simulated API call
-    // In production, you would use:
-    // - WhatsApp Business API
-    // - Twilio WhatsApp API
-    // - Meta WhatsApp Cloud API
-
     const whatsappApiUrl = `https://api.whatsapp.com/send?phone=${phoneNumber.replace(/\D/g, '')}&text=${encodeURIComponent(receiptText)}`;
     
     console.log('Receipt processed', { 
@@ -71,7 +120,6 @@ Visit us again soon! 🌟
       timestamp: new Date().toISOString()
     });
 
-    // For now, return the WhatsApp URL so the frontend can open it
     return new Response(
       JSON.stringify({ 
         success: true, 

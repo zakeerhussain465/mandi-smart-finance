@@ -10,6 +10,22 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { useFruits } from '@/hooks/useFruits';
 import { useFruitCategories } from '@/hooks/useFruitCategories';
 import { Plus, Edit2, Loader2, Trash2, Search } from 'lucide-react';
+import { toast } from 'sonner';
+import { z } from 'zod';
+
+const fruitSchema = z.object({
+  name: z.string().trim().min(1, 'Name is required').max(100, 'Name must be less than 100 characters'),
+  price_per_kg: z.number().positive('Price must be positive').max(999999, 'Price is too high'),
+  price_per_unit: z.number().positive('Price must be positive').max(999999, 'Price is too high').optional(),
+  available_stock: z.number().min(0, 'Stock cannot be negative').max(999999, 'Stock is too high'),
+});
+
+const categorySchema = z.object({
+  name: z.string().trim().min(1, 'Category name is required').max(100, 'Name must be less than 100 characters'),
+  price_per_kg: z.number().positive('Price must be positive').max(999999, 'Price is too high').optional(),
+  price_per_unit: z.number().positive('Price must be positive').max(999999, 'Price is too high').optional(),
+  available_stock: z.number().min(0, 'Stock cannot be negative').max(999999, 'Stock is too high').optional(),
+});
 
 export const FruitManagement: React.FC = () => {
   const [open, setOpen] = useState(false);
@@ -44,40 +60,65 @@ export const FruitManagement: React.FC = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!name.trim() || !pricePerKg) return;
+    try {
+      // Validate fruit data
+      const validatedData = fruitSchema.parse({
+        name: name.trim(),
+        price_per_kg: parseFloat(pricePerKg),
+        price_per_unit: pricePerUnit ? parseFloat(pricePerUnit) : parseFloat(pricePerKg),
+        available_stock: parseFloat(availableStock || '0'),
+      });
 
-    const fruitData = {
-      name: name.trim(),
-      price_per_kg: parseFloat(pricePerKg),
-      price_per_unit: pricePerUnit ? parseFloat(pricePerUnit) : parseFloat(pricePerKg),
-      unit,
-      available_stock: parseFloat(availableStock || '0'),
-    };
-
-    let success;
-    if (editingFruit) {
-      success = await updateFruit(editingFruit.id, fruitData);
-    } else {
-      success = await createFruit(fruitData);
-    }
-
-    if (success) {
-      // Handle categories
-      if (categories.length > 0) {
-        for (const category of categories) {
-          await createCategory({
-            fruit_id: success.id,
-            name: category.name,
-            price_per_kg: category.price_per_kg ? parseFloat(category.price_per_kg) : undefined,
-            price_per_unit: category.price_per_unit ? parseFloat(category.price_per_unit) : undefined,
-            unit: category.unit,
-            available_stock: category.available_stock ? parseFloat(category.available_stock) : 0,
-          });
-        }
+      // Validate categories
+      for (const category of categories) {
+        categorySchema.parse({
+          name: category.name,
+          price_per_kg: category.price_per_kg ? parseFloat(category.price_per_kg) : undefined,
+          price_per_unit: category.price_per_unit ? parseFloat(category.price_per_unit) : undefined,
+          available_stock: category.available_stock ? parseFloat(category.available_stock) : undefined,
+        });
       }
-      
-      setOpen(false);
-      resetForm();
+
+      const fruitData = {
+        name: validatedData.name,
+        price_per_kg: validatedData.price_per_kg,
+        price_per_unit: validatedData.price_per_unit || validatedData.price_per_kg,
+        unit,
+        available_stock: validatedData.available_stock,
+      };
+
+      let success;
+      if (editingFruit) {
+        success = await updateFruit(editingFruit.id, fruitData);
+      } else {
+        success = await createFruit(fruitData);
+      }
+
+      if (success) {
+        // Handle categories
+        if (categories.length > 0) {
+          for (const category of categories) {
+            await createCategory({
+              fruit_id: success.id,
+              name: category.name,
+              price_per_kg: category.price_per_kg ? parseFloat(category.price_per_kg) : undefined,
+              price_per_unit: category.price_per_unit ? parseFloat(category.price_per_unit) : undefined,
+              unit: category.unit,
+              available_stock: category.available_stock ? parseFloat(category.available_stock) : 0,
+            });
+          }
+        }
+        
+        setOpen(false);
+        resetForm();
+      }
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        toast.error(error.errors[0].message);
+        return;
+      }
+      toast.error('Failed to save fruit');
+      console.error('Error saving fruit:', error);
     }
   };
 

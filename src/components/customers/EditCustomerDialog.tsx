@@ -5,6 +5,14 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { useCustomers, Customer } from '@/hooks/useCustomers';
+import { toast } from 'sonner';
+import { z } from 'zod';
+
+const customerSchema = z.object({
+  name: z.string().trim().min(1, 'Name is required').max(200, 'Name must be less than 200 characters'),
+  phone: z.string().regex(/^\+?[0-9]{10,15}$/, 'Invalid phone number (10-15 digits)').optional().or(z.literal('')),
+  address: z.string().max(500, 'Address must be less than 500 characters').optional(),
+});
 
 interface EditCustomerDialogProps {
   customer: Customer;
@@ -26,19 +34,28 @@ export const EditCustomerDialog: React.FC<EditCustomerDialogProps> = ({
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!name.trim()) return;
-
     setSaving(true);
     try {
-      await updateCustomer(customer.id, {
+      const validatedCustomer = customerSchema.parse({
         name: name.trim(),
-        phone: phone.trim() || undefined,
+        phone: phone.trim() || '',
         address: address.trim() || undefined,
+      });
+
+      await updateCustomer(customer.id, {
+        name: validatedCustomer.name,
+        phone: validatedCustomer.phone || undefined,
+        address: validatedCustomer.address,
       });
       
       onOpenChange(false);
     } catch (error) {
-      console.error('Failed to update customer:', error);
+      if (error instanceof z.ZodError) {
+        toast.error(error.errors[0].message);
+      } else {
+        toast.error('Failed to update customer');
+        console.error('Failed to update customer:', error);
+      }
     } finally {
       setSaving(false);
     }
