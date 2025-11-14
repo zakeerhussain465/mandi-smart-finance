@@ -66,9 +66,10 @@ Visit us again soon! 🌟
 
     const whatsappApiUrl = `https://api.whatsapp.com/send?phone=${phoneNumber.replace(/\D/g, '')}&text=${encodeURIComponent(receiptText)}`;
     
-    console.log(`Receipt prepared for ${phoneNumber}`);
-    console.log('WhatsApp URL:', whatsappApiUrl);
-    console.log('Receipt Text:', receiptText);
+    console.log('Receipt processed', { 
+      transactionId: transaction.id,
+      timestamp: new Date().toISOString()
+    });
 
     // For now, return the WhatsApp URL so the frontend can open it
     return new Response(
