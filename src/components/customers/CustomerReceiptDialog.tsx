@@ -31,16 +31,13 @@ export const CustomerReceiptDialog: React.FC<CustomerReceiptDialogProps> = ({
   open,
   onOpenChange,
 }) => {
-  const [alternatePhone, setAlternatePhone] = useState('');
   const [sending, setSending] = useState(false);
 
   const handleSendReceipt = async () => {
-    const phoneNumber = alternatePhone || transaction.customers.phone;
-    
-    if (!phoneNumber) {
+    if (!transaction.customers.phone) {
       toast({
         title: "Error",
-        description: "Please provide a phone number",
+        description: "Customer has no phone number on record",
         variant: "destructive"
       });
       return;
@@ -50,8 +47,7 @@ export const CustomerReceiptDialog: React.FC<CustomerReceiptDialogProps> = ({
     try {
       const { data, error } = await supabase.functions.invoke('send-receipt', {
         body: {
-          transaction,
-          phoneNumber
+          transactionId: transaction.id
         }
       });
 
@@ -72,12 +68,12 @@ export const CustomerReceiptDialog: React.FC<CustomerReceiptDialogProps> = ({
         
         toast({
           title: "Success",
-          description: `WhatsApp opened with receipt for ${phoneNumber}`,
+          description: `WhatsApp opened with receipt for ${transaction.customers.phone}`,
         });
       } else {
         toast({
           title: "Success",
-          description: `Receipt prepared for ${phoneNumber}`,
+          description: `Receipt prepared for ${transaction.customers.phone}`,
         });
       }
       
@@ -102,23 +98,17 @@ export const CustomerReceiptDialog: React.FC<CustomerReceiptDialogProps> = ({
         
         <div className="space-y-4">
           <div className="space-y-2">
-            <Label htmlFor="phone">Send to Phone Number</Label>
-            <div className="space-y-2">
-              <Input
-                id="phone"
-                placeholder={transaction.customers.phone || "Enter phone number"}
-                value={alternatePhone}
-                onChange={(e) => setAlternatePhone(e.target.value)}
-              />
-              <Button 
-                onClick={handleSendReceipt}
-                disabled={sending}
-                className="w-full"
-              >
-                <Send className="h-4 w-4 mr-2" />
-                {sending ? 'Sending...' : 'Send Receipt via WhatsApp'}
-              </Button>
-            </div>
+            <p className="text-sm text-muted-foreground">
+              Receipt will be sent to: <strong>{transaction.customers.phone || 'No phone number'}</strong>
+            </p>
+            <Button 
+              onClick={handleSendReceipt}
+              disabled={sending || !transaction.customers.phone}
+              className="w-full"
+            >
+              <Send className="h-4 w-4 mr-2" />
+              {sending ? 'Sending...' : 'Send Receipt via WhatsApp'}
+            </Button>
             <p className="text-xs text-muted-foreground">
               Opens WhatsApp with formatted receipt text
             </p>

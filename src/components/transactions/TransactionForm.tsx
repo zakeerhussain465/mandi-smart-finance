@@ -12,6 +12,24 @@ import { useFruitCategories } from '@/hooks/useFruitCategories';
 import { useTransactions } from '@/hooks/useTransactions';
 import { useTrayTransactions } from '@/hooks/useTrayTransactions';
 import { Plus, UserPlus } from 'lucide-react';
+import { toast } from 'sonner';
+import { z } from 'zod';
+
+const transactionSchema = z.object({
+  customer_id: z.string().uuid('Invalid customer'),
+  fruit_id: z.string().uuid('Invalid fruit'),
+  fruit_category_id: z.string().uuid('Invalid category').optional(),
+  quantity: z.number().positive('Quantity must be positive').max(999999, 'Quantity is too high'),
+  price_per_kg: z.number().positive('Price must be positive').max(999999, 'Price is too high'),
+  paid_amount: z.number().min(0, 'Amount cannot be negative').max(999999, 'Amount is too high'),
+  notes: z.string().max(500, 'Notes must be less than 500 characters').optional(),
+});
+
+const customerSchema = z.object({
+  name: z.string().trim().min(1, 'Name is required').max(200, 'Name must be less than 200 characters'),
+  phone: z.string().regex(/^\+?[0-9]{10,15}$/, 'Invalid phone number (10-15 digits)').optional().or(z.literal('')),
+  address: z.string().max(500, 'Address must be less than 500 characters').optional(),
+});
 
 export const TransactionForm: React.FC = () => {
   const [open, setOpen] = useState(false);
@@ -40,83 +58,115 @@ export const TransactionForm: React.FC = () => {
   const traysUsed = parseInt(numberOfTrays || '0');
 
   const handleCreateCustomer = async () => {
-    if (!newCustomerName.trim()) return;
+    try {
+      const validatedCustomer = customerSchema.parse({
+        name: newCustomerName.trim(),
+        phone: newCustomerPhone.trim() || '',
+        address: newCustomerAddress.trim() || undefined,
+      });
 
-    const newCustomer = await createCustomer({
-      name: newCustomerName,
-      phone: newCustomerPhone || undefined,
-      address: newCustomerAddress || undefined,
-    });
+      const newCustomer = await createCustomer({
+        name: validatedCustomer.name,
+        phone: validatedCustomer.phone || undefined,
+        address: validatedCustomer.address,
+      });
 
-    if (newCustomer) {
-      setCustomerId(newCustomer.id);
-      setShowNewCustomer(false);
-      setNewCustomerName('');
-      setNewCustomerPhone('');
-      setNewCustomerAddress('');
+      if (newCustomer) {
+        setCustomerId(newCustomer.id);
+        setShowNewCustomer(false);
+        setNewCustomerName('');
+        setNewCustomerPhone('');
+        setNewCustomerAddress('');
+      }
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        toast.error(error.errors[0].message);
+        return;
+      }
+      toast.error('Failed to create customer');
+      console.error('Error creating customer:', error);
     }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!fruitId || !quantity || !pricePerKg) {
-      return;
-    }
-
-    // For cash sales, create a temporary customer if none selected
-    let customerIdToUse = customerId;
-    if (!customerId || customerId === 'cash-sale') {
-      const cashCustomer = await createCustomer({
-        name: 'Cash Sale',
-        phone: undefined,
-        address: undefined,
-      });
-      if (cashCustomer) {
-        customerIdToUse = cashCustomer.id;
+    try {
+      // For cash sales, create a temporary customer if none selected
+      let customerIdToUse = customerId;
+      if (!customerId || customerId === 'cash-sale') {
+        const cashCustomer = await createCustomer({
+          name: 'Cash Sale',
+          phone: undefined,
+          address: undefined,
+        });
+        if (cashCustomer) {
+          customerIdToUse = cashCustomer.id;
+        }
       }
-    }
 
-    if (!customerIdToUse) return;
+      if (!customerIdToUse) {
+        toast.error('Please select a customer');
+        return;
+      }
 
-    const transaction = await createTransaction({
-      customer_id: customerIdToUse,
-      fruit_id: fruitId,
-      fruit_category_id: fruitCategoryId || undefined,
-      quantity: parseFloat(quantity),
-      price_per_kg: parseFloat(pricePerKg),
-      paid_amount: parseFloat(paidAmount || '0'),
-      pricing_mode: pricingMode,
-      notes: notes || undefined,
-    });
-
-    if (transaction && traysUsed > 0 && customerId !== 'cash-sale') {
-      // Create tray transaction if trays are used and it's not a cash sale
-      const selectedFruit = fruits.find(f => f.id === fruitId);
-      const trayNotes = `Transaction ID: ${transaction.id} - ${selectedFruit?.name || 'Unknown'} (${quantity}kg)`;
-      
-      await createTrayTransaction({
+      // Validate transaction data
+      const validatedTransaction = transactionSchema.parse({
         customer_id: customerIdToUse,
-        tray_number: `TXN-${Date.now()}`, // Auto-generate tray number
-        weight: parseFloat(quantity),
-        rate_per_kg: parseFloat(pricePerKg),
+        fruit_id: fruitId,
+        fruit_category_id: fruitCategoryId || undefined,
+        quantity: parseFloat(quantity),
+        price_per_kg: parseFloat(pricePerKg),
         paid_amount: parseFloat(paidAmount || '0'),
-        number_of_trays: parseInt(numberOfTrays || '1'),
-        notes: trayNotes
+        notes: notes || undefined,
       });
-    }
 
-    if (transaction) {
-      setOpen(false);
-      setCustomerId('');
-      setFruitId('');
-      setFruitCategoryId('');
-      setQuantity('');
-      setPricePerKg('');
-      setPaidAmount('');
-      setNumberOfTrays('');
-      setNotes('');
-      setPricingMode('per_kg');
+      const transaction = await createTransaction({
+        customer_id: validatedTransaction.customer_id,
+        fruit_id: validatedTransaction.fruit_id,
+        fruit_category_id: validatedTransaction.fruit_category_id,
+        quantity: validatedTransaction.quantity,
+        price_per_kg: validatedTransaction.price_per_kg,
+        paid_amount: validatedTransaction.paid_amount,
+        pricing_mode: pricingMode,
+        notes: validatedTransaction.notes,
+      });
+
+      if (transaction && traysUsed > 0 && customerId !== 'cash-sale') {
+        // Create tray transaction if trays are used and it's not a cash sale
+        const selectedFruit = fruits.find(f => f.id === fruitId);
+        const trayNotes = `Transaction ID: ${transaction.id} - ${selectedFruit?.name || 'Unknown'} (${quantity}kg)`;
+        
+        await createTrayTransaction({
+          customer_id: customerIdToUse,
+          tray_number: `TXN-${Date.now()}`, // Auto-generate tray number
+          weight: parseFloat(quantity),
+          rate_per_kg: parseFloat(pricePerKg),
+          paid_amount: parseFloat(paidAmount || '0'),
+          number_of_trays: parseInt(numberOfTrays || '1'),
+          notes: trayNotes
+        });
+      }
+
+      if (transaction) {
+        setOpen(false);
+        setCustomerId('');
+        setFruitId('');
+        setFruitCategoryId('');
+        setQuantity('');
+        setPricePerKg('');
+        setPaidAmount('');
+        setNumberOfTrays('');
+        setNotes('');
+        setPricingMode('per_kg');
+      }
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        toast.error(error.errors[0].message);
+        return;
+      }
+      toast.error('Failed to create transaction');
+      console.error('Error creating transaction:', error);
     }
   };
 
